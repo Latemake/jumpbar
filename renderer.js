@@ -1,5 +1,11 @@
 ﻿'use strict';
 // The renderer consumes the 2D simulation. Depth is decorative, never a control axis.
+const JUMPBAR_CHARACTERS=[
+  {id:'spark',name:'Kipinä',style:'Otsapanta',shirt:'#f06c3d',pants:'#263d50',skin:'#dca580',hair:'#293039',shoe:'#f4f3df',badge:'J'},
+  {id:'neon',name:'Neon',style:'Nuttura',shirt:'#26d6bf',pants:'#432969',skin:'#88563e',hair:'#251b35',shoe:'#f0ff8f',badge:'N'},
+  {id:'astro',name:'Astro',style:'Avaruuspuku',shirt:'#eef1ff',pants:'#6b7da9',skin:'#dca580',hair:'#60422e',shoe:'#74dcec',badge:'A'},
+  {id:'shadow',name:'Varjo',style:'Ninja',shirt:'#7652e9',pants:'#24233b',skin:'#dca780',hair:'#24233b',shoe:'#baff75',badge:'V'}
+];
 class KaariRenderer {
   constructor(canvas){
     this.canvas=canvas;
@@ -17,7 +23,7 @@ class KaariRenderer {
     this.sun.shadow.bias=-.0003;this.sun.shadow.normalBias=.6;this.sun.shadow.radius=3;this.scene.add(this.sun,this.sun.target);
     const rim=new THREE.DirectionalLight('#b9dcff',1.2);rim.position.set(-300,220,-250);this.scene.add(rim);
     this.world=new THREE.Group();this.scene.add(this.world);this.person=new THREE.Group();this.scene.add(this.person);
-    this.makePerson();
+    this.characterId='spark';this.makePerson();
     this.makeCrashEffects();
     this.trailGeometry=new THREE.BufferGeometry();this.trailGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(90),3));
     this.trailLine=new THREE.Line(this.trailGeometry,new THREE.LineBasicMaterial({color:'#fff9d7',transparent:true,opacity:.55}));this.trailLine.frustumCulled=false;this.scene.add(this.trailLine);
@@ -52,7 +58,9 @@ class KaariRenderer {
     const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));sprite.scale.set(size*4,size,1);return sprite;
   }
   makePerson(){
-    const skin=this.material('#dca580',.7),darkSkin=this.material('#c78c6e'),shirt=this.material('#f06c3d',.55),pants=this.material('#263d50',.8),shoe=this.material('#f4f3df',.4),sole=this.material('#789493'),hair=this.material('#293039'),white=this.material('#fff8e6');
+    const character=JUMPBAR_CHARACTERS.find(c=>c.id===this.characterId)||JUMPBAR_CHARACTERS[0];
+    const skin=this.material(character.skin,.7),darkSkin=this.material(character.skin),shirt=this.material(character.shirt,.55),pants=this.material(character.pants,.8),shoe=this.material(character.shoe,.4),sole=this.material('#789493'),hair=this.material(character.hair),white=this.material('#fff8e6');
+    darkSkin.color.multiplyScalar(.78);
     this.limbs=[];this.jointMeshes={};this.sleeves=[];
     const limbGeometry=new THREE.CylinderGeometry(.85,1,1,18);
     for(const side of ['L','R']){
@@ -86,12 +94,39 @@ class KaariRenderer {
     this.ball(-3,10.6,1,5.4,hair,this.headGroup,1,.8,1.2);
     this.ball(3,10.2,0,5,hair,this.headGroup,1,.7,1.2);
     this.rod([-8.3,5.8,4],[8.3,5.8,4],1.3,shirt,this.headGroup);
+    this.characterGear=new THREE.Group();this.headGroup.add(this.characterGear);
+    if(character.id==='neon'){
+      this.ball(0,10,-7,7.5,hair,this.characterGear,1,1,.9);
+      this.rod([-5,7,-7],[5,7,-7],1.8,shoe,this.characterGear);
+    }else if(character.id==='astro'){
+      this.ball(0,1,0,12.6,shirt,this.characterGear,1,1.03,1);
+      const visor=this.material('#153755',.18,.5);visor.emissive.set('#092c48');
+      this.ball(0,1,8,10,visor,this.characterGear,1,.78,.52);
+      this.ball(-4,4,12.4,2,white,this.characterGear,1.5,.4,.25);
+      for(const x of [-12,12])this.ball(x,0,0,3,shoe,this.characterGear,.5,1,1);
+    }else if(character.id==='shadow'){
+      this.ball(0,-4,5,8,pants,this.characterGear,1,.68,.65);
+      this.rod([-9,6,4],[9,6,4],2.2,shirt,this.characterGear);
+      this.ball(0,3,-11,3.5,shirt,this.characterGear);
+      this.rod([0,3,-11],[-6,-7,-13],2,shirt,this.characterGear);
+      this.rod([0,3,-11],[4,-10,-12],1.8,shirt,this.characterGear);
+    }
     this.jersey=new THREE.Group();this.person.add(this.jersey);
     const graphic=document.createElement('canvas');graphic.width=128;graphic.height=192;
-    const paint=graphic.getContext('2d');paint.fillStyle='#fff5d6';paint.font='900 120px sans-serif';paint.textAlign='center';paint.fillText('J',64,132);paint.fillRect(20,152,88,8);
+    const paint=graphic.getContext('2d');paint.fillStyle=character.id==='astro'?'#244670':'#fff5d6';paint.font='900 120px sans-serif';paint.textAlign='center';paint.fillText(character.badge,64,132);paint.fillRect(20,152,88,8);
     const texture=new THREE.CanvasTexture(graphic);texture.colorSpace=THREE.SRGBColorSpace;
     const badge=new THREE.Mesh(new THREE.PlaneGeometry(12,17),new THREE.MeshStandardMaterial({map:texture,transparent:true,roughness:.85,side:THREE.DoubleSide}));badge.rotation.y=Math.PI/2;this.jersey.add(badge);
     this.person.matrixAutoUpdate=false;
+  }
+  setCharacter(id){
+    const character=JUMPBAR_CHARACTERS.find(c=>c.id===id)||JUMPBAR_CHARACTERS[0];
+    if(character.id===this.characterId)return;
+    const materials=new Set(),geometries=new Set(),textures=new Set();
+    this.person.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material){materials.add(o.material);if(o.material.map)textures.add(o.material.map);}});
+    this.person.clear();
+    for(const g of geometries)if(g!==this.sphere&&g!==this.cylinder&&g!==this.box)g.dispose();
+    for(const m of materials)m.dispose();for(const t of textures)t.dispose();
+    this.characterId=character.id;this.makePerson();
   }
   makeTree(x,z,height,palette){
     const trunk=this.material(palette==='coast'?'#9c8264':'#78674f');this.rod([x,-6,z],[x,height*.65,z],5,trunk);

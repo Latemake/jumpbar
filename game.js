@@ -7,6 +7,24 @@ const touchMode=navigator.maxTouchPoints>0||matchMedia('(any-pointer: coarse)').
 document.body.dataset.touch=String(touchMode);
 if(touchMode)ui['start-hint'].textContent='Pidä OTE · kerää vauhtia KERÄÄN-napilla';
 const graphics=new KaariRenderer(canvas);
+let selectedCharacter='spark';
+try{const saved=localStorage.getItem('jumpbar-character');if(JUMPBAR_CHARACTERS.some(c=>c.id===saved))selectedCharacter=saved;}catch{}
+function selectCharacter(id){
+  const character=JUMPBAR_CHARACTERS.find(c=>c.id===id)||JUMPBAR_CHARACTERS[0];
+  selectedCharacter=character.id;graphics.setCharacter(character.id);
+  document.getElementById('character-name').textContent=character.name;
+  document.querySelectorAll('[data-character]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.character===character.id)));
+  try{localStorage.setItem('jumpbar-character',character.id);}catch{}
+}
+for(const character of JUMPBAR_CHARACTERS){
+  const button=document.createElement('button');button.type='button';button.dataset.character=character.id;
+  button.setAttribute('aria-label',`${character.name} — ${character.style}`);button.setAttribute('aria-pressed','false');
+  button.style.setProperty('--outfit',character.shirt);button.style.setProperty('--skin',character.skin);button.style.setProperty('--hair',character.hair);
+  const avatar=document.createElement('span');avatar.className='character-avatar';avatar.setAttribute('aria-hidden','true');avatar.innerHTML='<i></i>';
+  const name=document.createElement('span');name.textContent=character.name;button.append(avatar,name);
+  button.onclick=()=>selectCharacter(character.id);document.getElementById('character-list').appendChild(button);
+}
+selectCharacter(selectedCharacter);
 let width=1000,height=550,scale=1,camera=0,cameraY=160,cameraSpan=480,trail=[],particles=[],best=0,screen='menu',menuTime=0;
 function readBest(){try{best=Number(localStorage.getItem('kaari-best-'+game.map.id))||0;}catch{best=0;}}
 function baseSpan(){return touchMode?Math.max(480,380*height/width):480;}
