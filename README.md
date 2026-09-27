@@ -27,7 +27,7 @@ Uusi tanko +100, kokonainen ilmavoltti +250, onnistunut alastulo +500.
 
 Three.js-renderöinti, ortografinen sivukamera, kolmiulotteinen nivelhahmo, materiaalit, dynaamiset varjot ja rataa seuraava kamera. Puistoradalla on puita ja kumpuileva tausta, rannalla meri ja palmut, auringonlaskuradalla lämmin valaistus. Tankojen rungot, pehmusteet, kiinnikkeet ja alastulomatto ovat 3D-malleja. Syvyys on visuaalinen: fysiikka ja ohjaus toimivat yhdessä tasossa.
 
-Tangot ovat noin viidenneksen alkuperäistä matalampia. Kamera seuraa pehmeästi myös pystysuunnassa ja loittonee korkeassa lennossa, jotta pelaaja ja maa pysyvät näkyvissä.
+Tangot ovat noin viidenneksen alkuperäistä matalampia. Tietokoneella kamera seuraa pystysuunnassa ja loittonee korkeassa lennossa. Puhelimella lähikamera seuraa hahmoa molempiin suuntiin kiinteällä zoomilla, myös korkeissa hypyissä. Ruudun ulkopuolelle jäävän seuraavan tangon tai maalin suunnan näyttää pieni nuoli.
 
 `renderer.js` muuntaa fysiikan nivelpisteet 3D-hahmoksi. `vendor/three.min.js` sisältää paikallisen Three.js 0.180.0 -kirjaston, joten pelaaminen ei vaadi CDN-yhteyttä. MIT-lisenssi on tiedostossa `vendor/THREE-LICENSE.txt`.
 
@@ -54,7 +54,7 @@ Avaa pelilinkki puhelimen selaimessa. Pysty- ja vaaka-asento toimivat.
 - Vasen peukalo: **KERÄÄN** pohjassa koukistaa vartalon; vapauta suoristuaksesi.
 - Molempia nappeja voi painaa yhtä aikaa. Sormi saa liukua napin ulkopuolelle otteen katkeamatta.
 - Yläkulmassa ovat tauko ja uusi yritys. Puhelimen kääntäminen tai kosketuksen keskeytyminen pysäyttää pelin tauolle.
-- Kamera näyttää enemmän rataa ja jättää tilaa ohjaimille. Renderöinnin tarkkuutta ja varjoja on kevennetty mobiililaitteille.
+- Puhelimen kamera pitää hahmon lähellä ruudun keskikohtaa ja näyttää sen suurempana. Renderöinnin tarkkuutta ja varjoja on kevennetty mobiililaitteille.
 
 Selaimen koko näytön tilan tuki vaihtelee laitteittain. Peli täyttää käytettävissä olevan selainalueen myös ilman sitä.
 ## Kaatumiset
@@ -79,3 +79,4 @@ Päävalikon hahmovalinta vaihtaa hahmon heti 3D-esikatselussa. Valinta tallentu
 - **Varjo:** violetti ninja-asu, kasvomaski ja sidottu otsanauha.
 
 Kaikilla hahmoilla on sama fysiikka, temput ja pisteytys.
+

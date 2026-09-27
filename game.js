@@ -27,15 +27,30 @@ for(const character of JUMPBAR_CHARACTERS){
 selectCharacter(selectedCharacter);
 let width=1000,height=550,scale=1,camera=0,cameraY=160,cameraSpan=480,trail=[],particles=[],best=0,screen='menu',menuTime=0;
 function readBest(){try{best=Number(localStorage.getItem('kaari-best-'+game.map.id))||0;}catch{best=0;}}
-function baseSpan(){return touchMode?Math.max(480,380*height/width):480;}
+function baseSpan(){return touchMode?(height>width?460:360):480;}
 function floorMargin(span){return touchMode?(height>width?155:115)*span/height:70;}
-function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;scale=height/480;graphics.resize();if(screen==='play'){cameraSpan=Math.max(cameraSpan,baseSpan());cameraY=cameraSpan/2-floorMargin(cameraSpan);}}
+function followMobilePlayer(dt=0,snap=false){
+  const p=game.player,span=baseSpan(),view=width/height*span;
+  const flying=p.bar<0&&!game.ended;
+  const leadX=flying?clamp(p.vx*.035,-12,12):0;
+  const leadY=flying?clamp(-p.vy*.025,-12,12):0;
+  // Keep the body near the centre of the usable view, above the thumb controls.
+  // Unlike the desktop camera, do not zoom out to include the floor or map edges.
+  const targetX=p.x+leadX-view/2,targetY=K_FLOOR-p.y+leadY-span*.065;
+  const blend=snap?1:1-Math.exp(-16*dt);
+  cameraSpan=span;camera+=(targetX-camera)*blend;cameraY+=(targetY-cameraY)*blend;
+  // Bound tracking lag on fast launches, even on a narrow portrait screen.
+  camera=clamp(camera,p.x-view*.59,p.x-view*.41);
+  cameraY=clamp(cameraY,K_FLOOR-p.y-span*.14,K_FLOOR-p.y+span*.015);
+}
+function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;scale=height/480;graphics.resize();if(touchMode&&screen!=='menu')followMobilePlayer(0,true);}
 new ResizeObserver(resize).observe(canvas);
 function held(code){return keys.has(code)||touchKeys.has(code);}
 function controls(){return{grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
 function clearInput(){keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
 function setScreen(next){
   screen=next;document.body.dataset.screen=next;clearInput();
+  document.getElementById('target-guide').hidden=true;
   for(const name of ['menu','pause','result'])ui[name].hidden=next!==name;
   ui.hud.hidden=next==='menu';ui.touch.hidden=next!=='play';
   if(next==='play')canvas.focus();
@@ -45,6 +60,7 @@ function setScreen(next){
 function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`ENNÄTYS ${best}`;}
 function reset(mapIndex=game.mapIndex){
   clearInput();game.reset(mapIndex);readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;
+  if(touchMode)followMobilePlayer(0,true);
   document.querySelectorAll('[data-map]').forEach((button,i)=>button.setAttribute('aria-pressed',String(i===mapIndex)));sync();
 }
 function enterFullscreen(){if(!document.fullscreenElement&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}
@@ -71,6 +87,7 @@ function step(dt){
   if(game.ended&&game.elapsedAfterEnd>(game.crash?game.crash.duration:1.1))setScreen('result');
   const p=game.player;
   if(p.bar<0&&!game.ended){trail.push({x:p.x,y:p.y});if(trail.length>30)trail.shift();}
+  if(touchMode){followMobilePlayer(dt);return;}
   // Track high flights vertically and pull back enough to retain the floor.
   // Upward velocity gives the camera a short lead before the next apex.
   const top=Math.max(330,K_FLOOR-p.y+100+(p.bar<0?Math.max(0,-p.vy)*.12:0));

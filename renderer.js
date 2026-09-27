@@ -27,7 +27,7 @@ class KaariRenderer {
     this.makeCrashEffects();
     this.trailGeometry=new THREE.BufferGeometry();this.trailGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(90),3));
     this.trailLine=new THREE.Line(this.trailGeometry,new THREE.LineBasicMaterial({color:'#fff9d7',transparent:true,opacity:.55}));this.trailLine.frustumCulled=false;this.scene.add(this.trailLine);
-    this.labels=document.getElementById('effects');this.resize();
+    this.labels=document.getElementById('effects');this.targetGuide=document.getElementById('target-guide');this.resize();
   }
   material(color,roughness=.65,metalness=0){const m=new THREE.MeshStandardMaterial({color,roughness,metalness});return m;}
   makeCrashEffects(){
@@ -217,6 +217,19 @@ class KaariRenderer {
     const positions=this.trailGeometry.attributes.position;for(let i=0;i<trail.length;i++)positions.setXYZ(i,trail[i].x,K_FLOOR-trail[i].y,-12);positions.needsUpdate=true;this.trailGeometry.setDrawRange(0,trail.length);this.trailLine.visible=trail.length>1;
     this.drawCrash(game);
     this.renderer.render(this.scene,this.camera);
+    this.targetGuide.hidden=true;
+    if(this.mobile&&document.body.dataset.screen==='play'&&!game.ended){
+      const index=game.bars.findIndex((_,i)=>!game.visited.has(i));
+      const target=index<0?{x:game.mat.x+game.mat.w/2,y:K_FLOOR-10}:game.bars[index];
+      const v=new THREE.Vector3(target.x,K_FLOOR-target.y,0).project(this.camera);
+      if(Math.abs(v.x)>.86||Math.abs(v.y)>.8){
+        this.targetGuide.hidden=false;
+        this.targetGuide.style.left=`${clamp(v.x*.5+.5,.10,.90)*100}%`;
+        this.targetGuide.style.top=`${clamp(-v.y*.5+.5,.18,.68)*100}%`;
+        const arrow=Math.abs(v.x)>.86?(v.x>0?'→':'←'):(v.y>0?'↑':'↓');
+        this.targetGuide.textContent=`${index<0?'MAALI':String(index+1).padStart(2,'0')} ${arrow}`;
+      }
+    }
     this.labels.replaceChildren();for(const p of particles){const v=new THREE.Vector3(p.x,K_FLOOR-p.y,0).project(this.camera),el=document.createElement('span');el.textContent=p.label;el.style.left=`${(v.x*.5+.5)*100}%`;el.style.top=`${(-v.y*.5+.5)*100}%`;el.style.opacity=Math.min(1,p.life);this.labels.appendChild(el);}
   }
 }
