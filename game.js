@@ -14,7 +14,7 @@ function floorMargin(span){return touchMode?(height>width?155:115)*span/height:7
 function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;scale=height/480;graphics.resize();if(screen==='play'){cameraSpan=Math.max(cameraSpan,baseSpan());cameraY=cameraSpan/2-floorMargin(cameraSpan);}}
 new ResizeObserver(resize).observe(canvas);
 function held(code){return keys.has(code)||touchKeys.has(code);}
-function controls(){return{grip:held('Space'),tuck:held('ArrowDown')||held('KeyS')};}
+function controls(){return{grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
 function clearInput(){keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
 function setScreen(next){
   screen=next;document.body.dataset.screen=next;clearInput();
@@ -46,7 +46,7 @@ function step(dt){
       best=Math.max(best,game.score);try{localStorage.setItem('kaari-best-'+game.map.id,best);}catch{}
       ui['result-label'].textContent=event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa · ennätys ${best}`;
       if(event.crash){particles.push({x:event.crash.x,y:K_FLOOR-95,label:event.crash.sound,life:1.8});clearInput();ui.touch.hidden=true;}
-    }else{particles.push({x:event.x,y:event.y-40,label:event.type==='flip'?'+250 VOLTTI':'+100',life:1.5});if(event.type==='catch')trail=[];}
+    }else{const label=event.type==='flip'?`+250 ${event.label}`:event.type==='twist'?`+200 ${event.label}`:event.type==='combo'?`COMBO +150 · ${event.label}`:'+100';if(event.type==='combo')particles=[];particles.push({x:event.x,y:event.y-40,label,life:event.type==='combo'?2:1.5});if(event.type==='catch')trail=[];}
     sync();
   }
   game.events=[];
@@ -69,7 +69,7 @@ window.addEventListener('keydown',e=>{
   if(e.code==='Escape'){e.preventDefault();if(screen==='play')pause();else if(screen==='pause')resume();return;}
   if(screen!=='play')return;
   if(e.target instanceof HTMLElement&&e.target.matches('button,a,input'))return;
-  if(['Space','ArrowDown','ArrowUp'].includes(e.code))e.preventDefault();keys.add(e.code);
+  if(['Space','ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys.add(e.code);
   if(e.code==='KeyR'){reset();canvas.focus();}
 });
 window.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Space')releaseIfNeeded();});

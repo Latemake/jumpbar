@@ -60,3 +60,12 @@ Selaimen koko näytön tilan tuki vaihtelee laitteittain. Peli täyttää käyte
 ## Kaatumiset
 
 Epäonnistunut alastulo valitsee asennon perusteella yhden viidestä koomisesta ragdoll-reaktiosta: nuppi edellä, mahalasku, selkäpomppu, pyykkilinko tai pyllähdys. Pöly, kiertävät tähdet ja sarjakuvatekstit täydentävät animaatiota. Tulosruutu avautuu animaation jälkeen; uuden yrityksen voi aloittaa heti R-näppäimellä tai uudelleenaloituspainikkeella.
+## Ilmakierrot ja yhdistelmät
+
+- **Vasen/oikea nuoli tai A/D:** pidä kiertääksesi vartaloa sen pituusakselin ympäri ilmassa. Vapauttaminen jarruttaa kiertoa.
+- Puhelimella käytä keskellä olevia **↶ / ↷** -nappeja. Kierron voi yhdistää keräasentoon.
+- Täysi 360° kierto +200 pistettä. Voltti +250. Voltin ja täyden kierron yhdistelmä antaa lisäksi +150 combo-pistettä kerran lentoa kohti, esimerkiksi **BACKFLIP 360°**.
+- Kierron nopeus kasvaa keräasennossa. Tangossa kierto on lukittu, ja kiinniotto palauttaa hahmon otteeseen.
+- Pelin lentorata pysyy kaksiulotteisena, mutta hahmo kiertyy aidosti kolmiulotteisesti.
+
+Hahmon mallissa on muotoiltu urheilupaita, J-tunnus, hihat, kapenevat raajat, tarkemmat kasvot ja hiukset, otsapanta sekä raidalliset kengät.

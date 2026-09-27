@@ -53,17 +53,22 @@ class KaariRenderer {
   }
   makePerson(){
     const skin=this.material('#dca580',.7),darkSkin=this.material('#c78c6e'),shirt=this.material('#f06c3d',.55),pants=this.material('#263d50',.8),shoe=this.material('#f4f3df',.4),sole=this.material('#789493'),hair=this.material('#293039'),white=this.material('#fff8e6');
-    this.limbs=[];this.jointMeshes={};
+    this.limbs=[];this.jointMeshes={};this.sleeves=[];
+    const limbGeometry=new THREE.CylinderGeometry(.85,1,1,18);
     for(const side of ['L','R']){
       const z=side==='L'?-7:7;
       for(const [a,b,rad,mat] of [['chest','elbow'+side,4.5,skin],['elbow'+side,'hand'+side,3.8,skin],['hip','knee'+side,6,pants],['knee'+side,'foot'+side,4.5,pants]]){
-        const mesh=this.mesh(this.cylinder,mat,this.person);this.limbs.push({mesh,a,b,z,rad});
+        const mesh=this.mesh(limbGeometry,mat,this.person);this.limbs.push({mesh,a,b,z,rad});
       }
       for(const [id,rad,mat] of [['elbow'+side,4.4,skin],['hand'+side,4.2,skin],['knee'+side,5.4,pants],['foot'+side,5,shoe]])this.jointMeshes[id]={mesh:this.ball(0,0,z,rad,mat,this.person),z,rad};
       const foot=this.jointMeshes['foot'+side].mesh;foot.scale.set(7,4,5.5);
       const pad=this.block(0,-2.8,0,12,1.4,9,sole,foot);pad.scale.set(1.6,.35,1.5);pad.position.set(0,-.65,0);
+      const stripe=this.block(.15,.15,0,.8,.28,1.98,shirt,foot);
+      this.ball(-.48,.58,0,.47,pants,foot,1,.6,1.8);
+      const sleeve=this.mesh(this.cylinder,shirt,this.person);this.sleeves.push({mesh:sleeve,side,z});
     }
-    this.torso=this.mesh(this.sphere,shirt,this.person);this.torso.scale.set(12,20,9);
+    const profile=[[0,-1],[.66,-1],[.78,-.85],[.76,-.3],[.88,.35],[1,.62],[.89,.85],[.42,1],[0,1]].map(([r,y])=>new THREE.Vector2(r,y));
+    this.torso=this.mesh(new THREE.LatheGeometry(profile,24),shirt,this.person);this.torso.scale.set(12,20,9);
     this.hips=this.mesh(this.sphere,pants,this.person);this.hips.scale.set(11,8,9);
     this.neck=this.mesh(this.cylinder,skin,this.person);
     this.headGroup=new THREE.Group();this.person.add(this.headGroup);
@@ -71,8 +76,22 @@ class KaariRenderer {
     this.ball(0,6,-1,10,hair,this.headGroup,1.03,.65,.96);
     this.ball(-7,3,0,3,hair,this.headGroup,1,1.5,1);
     this.ball(0,-1,9,2.2,darkSkin,this.headGroup,1,1,1.2);
-    for(const x of [-3.8,3.8])this.ball(x,2,8.3,1.05,hair,this.headGroup);
-    this.jersey=this.block(0,0,0,5,16,1,white,this.person);
+    for(const x of [-3.8,3.8]){
+      this.ball(x,1.6,8.2,1.8,white,this.headGroup,1,.85,.45);
+      this.ball(x+.4,1.5,8.95,.9,hair,this.headGroup,1,1,.5);
+      this.rod([x-1.6,4.6,8.1],[x+1.4,4.8,8.1],.65,hair,this.headGroup);
+      this.ball(Math.sign(x)*9.7,-.4,0,2.3,skin,this.headGroup,.65,1,1);
+    }
+    this.rod([-2,-4.6,8],[2,-4.8,8],.5,darkSkin,this.headGroup);
+    this.ball(-3,10.6,1,5.4,hair,this.headGroup,1,.8,1.2);
+    this.ball(3,10.2,0,5,hair,this.headGroup,1,.7,1.2);
+    this.rod([-8.3,5.8,4],[8.3,5.8,4],1.3,shirt,this.headGroup);
+    this.jersey=new THREE.Group();this.person.add(this.jersey);
+    const graphic=document.createElement('canvas');graphic.width=128;graphic.height=192;
+    const paint=graphic.getContext('2d');paint.fillStyle='#fff5d6';paint.font='900 120px sans-serif';paint.textAlign='center';paint.fillText('J',64,132);paint.fillRect(20,152,88,8);
+    const texture=new THREE.CanvasTexture(graphic);texture.colorSpace=THREE.SRGBColorSpace;
+    const badge=new THREE.Mesh(new THREE.PlaneGeometry(12,17),new THREE.MeshStandardMaterial({map:texture,transparent:true,roughness:.85,side:THREE.DoubleSide}));badge.rotation.y=Math.PI/2;this.jersey.add(badge);
+    this.person.matrixAutoUpdate=false;
   }
   makeTree(x,z,height,palette){
     const trunk=this.material(palette==='coast'?'#9c8264':'#78674f');this.rod([x,-6,z],[x,height*.65,z],5,trunk);
@@ -145,14 +164,20 @@ class KaariRenderer {
     this.sun.position.set(cx-270,720,360);this.sun.target.position.set(cx,0,0);
     const j=game.ragdoll.joints,point=(id,z=0)=>[j[id].x,K_FLOOR-j[id].y,z];
     for(const limb of this.limbs)this.placeRod(limb.mesh,point(limb.a,limb.z),point(limb.b,limb.z),limb.rad);
+    for(const sleeve of this.sleeves){const start=point('chest',sleeve.z),end=point('elbow'+sleeve.side,sleeve.z);this.placeRod(sleeve.mesh,start,start.map((v,i)=>v+(end[i]-v)*.38),5.8);}
     for(const [id,{mesh,z}] of Object.entries(this.jointMeshes))mesh.position.set(...point(id,z));
     const hip=new THREE.Vector3(...point('hip')),chest=new THREE.Vector3(...point('chest')),dir=chest.clone().sub(hip);
     this.torso.position.copy(hip).add(chest).multiplyScalar(.5);this.torso.quaternion.setFromUnitVectors(this.up,dir.clone().normalize());this.torso.scale.set(11.5,dir.length()*.69,8.5);
     this.hips.position.copy(hip);this.hips.quaternion.copy(this.torso.quaternion);
-    this.jersey.position.copy(this.torso.position);this.jersey.position.z=8.1;this.jersey.quaternion.copy(this.torso.quaternion);
+    this.jersey.position.copy(this.torso.position).add(new THREE.Vector3(11,0,0).applyQuaternion(this.torso.quaternion));this.jersey.quaternion.copy(this.torso.quaternion);
     this.placeRod(this.neck,point('chest'),point('head'),4.2);
     this.headGroup.position.set(...point('head'));this.headGroup.rotation.set(0,0,Math.atan2(j.chest.x-j.head.x,j.chest.y-j.head.y));this.headGroup.rotateY(Math.PI/2);
     for(const side of ['L','R']){const f=j['foot'+side],k=j['knee'+side];this.jointMeshes['foot'+side].mesh.rotation.z=Math.atan2(f.x-k.x,f.y-k.y);}
+    // Twist the entire articulated model around its own hip-to-chest axis.
+    // Simulation coordinates stay in the original 2D movement plane.
+    const turn=new THREE.Quaternion().setFromAxisAngle(dir.clone().normalize(),game.player.twist||0);
+    this.person.matrix.makeTranslation(hip.x,hip.y,hip.z).multiply(new THREE.Matrix4().makeRotationFromQuaternion(turn)).multiply(new THREE.Matrix4().makeTranslation(-hip.x,-hip.y,-hip.z));
+    this.person.matrixWorldNeedsUpdate=true;
     this.barIndicators.forEach((m,i)=>{m.material.color.set(game.visited.has(i)?'#bcf3ac':'#9aafa6');m.material.emissive.set(game.visited.has(i)?'#3b6b2d':'#000000');});
     const positions=this.trailGeometry.attributes.position;for(let i=0;i<trail.length;i++)positions.setXYZ(i,trail[i].x,K_FLOOR-trail[i].y,-12);positions.needsUpdate=true;this.trailGeometry.setDrawRange(0,trail.length);this.trailLine.visible=trail.length>1;
     this.drawCrash(game);

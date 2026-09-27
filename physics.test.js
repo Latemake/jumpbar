@@ -3,6 +3,26 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {KaariPhysics,GymnastRagdoll,KAARI_MAPS,K_FLOOR}=require('./physics');
 const dt=1/120;
+test('air twists combine with backflips, brake on release, and preserve the 2D trajectory',()=>{
+  const plain=new KaariPhysics(),twisted=new KaariPhysics();
+  for(const g of [plain,twisted]){g.active=true;Object.assign(g.player,{bar:-1,x:500,y:-200,vx:0,vy:-200,momentum:4.5,tuck:1});g.ragdoll.reset(g.player);}
+  for(let i=0;i<120;i++){plain.step(dt,{tuck:true});twisted.step(dt,{tuck:true,twist:1});}
+  assert.equal(twisted.player.x,plain.player.x);assert.equal(twisted.player.y,plain.player.y);assert.equal(twisted.player.angle,plain.player.angle);
+  assert.ok(twisted.twistTurns>=1);assert.equal(twisted.events.filter(e=>e.type==='combo').length,1);
+  assert.ok(twisted.events.some(e=>e.type==='combo'&&e.label.startsWith('BACKFLIP')));
+  assert.equal(twisted.score-plain.score,twisted.twistTurns*200+150);
+  for(let i=0;i<60;i++)twisted.step(dt,{tuck:true,twist:0});
+  assert.ok(Math.abs(twisted.player.twistSpeed)<.1);
+  assert.equal(twisted.events.filter(e=>e.type==='combo').length,1);
+  twisted.reset();assert.equal(twisted.player.twist,0);assert.equal(twisted.twistTurns,0);
+});
+test('left twist works and attached gymnast cannot farm twist points',()=>{
+  const g=new KaariPhysics();for(let i=0;i<120;i++)g.step(dt,{grip:true,twist:-1});
+  assert.equal(g.player.twist,0);assert.equal(g.score,0);
+  Object.assign(g.player,{bar:-1,x:500,y:-200,vy:-200,momentum:0});
+  for(let i=0;i<120;i++)g.step(dt,{twist:-1});
+  assert.ok(g.player.twist<-Math.PI*2);assert.equal(g.score,200);
+});
 test('five crash poses produce distinct reactions, settle, and reset cleanly',()=>{
   const cases=[['head',Math.PI,0,0],['belly',-Math.PI/2,0,0],['back',Math.PI/2,0,0],['roll',0,.9,8],['sit',0,0,0]];
   const signatures=[];

@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 const KAARI_MAPS = [
   {id:'garden',name:'Puistotreeni',description:'Helppo · 5 tankoa · opettele keräasennon rytmi',points:[[180,220],[325,220],[480,205],[635,220],[795,210]],landing:240,colors:['#e7ecdf','#dbe3d2','#dee6d4','#d1ddc6','#809273']},
   {id:'coast',name:'Rantakaari',description:'Keskitaso · 7 tankoa · korkeuseroja ja pidempiä lentoja',points:[[180,225],[355,200],[540,225],[725,180],[910,210],[1105,190],[1300,215]],landing:260,colors:['#e2edf0','#d1e0e4','#c8dde2','#c2d5d4','#6d919d']},
@@ -77,18 +77,18 @@ class KaariPhysics {
   reset(mapIndex=this.mapIndex){
     this.mapIndex=clamp(mapIndex,0,KAARI_MAPS.length-1);this.map=KAARI_MAPS[this.mapIndex];this.bars=this.map.points.map(([x,y])=>({x,y:y+55}));this.mat={x:this.bars.at(-1).x+65,w:this.map.landing+80};
     const b=this.bars[0],angle=-.85;
-    this.player={x:b.x+Math.sin(angle)*76,y:b.y+Math.cos(angle)*76,vx:0,vy:0,angle,omega:0,radius:76,tuck:0,bar:0,cooldown:0,momentum:0};
-    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.airRotation=0;this.turns=0;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
+    this.player={x:b.x+Math.sin(angle)*76,y:b.y+Math.cos(angle)*76,vx:0,vy:0,angle,omega:0,radius:76,tuck:0,bar:0,cooldown:0,momentum:0,twist:0,twistSpeed:0};
+    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
   }
   inertia(tuck){return 1-.65*tuck;}
   release(){
     const p=this.player;if(p.bar<0||this.ended)return;
     p.vx=Math.cos(p.angle)*p.radius*p.omega;p.vy=-Math.sin(p.angle)*p.radius*p.omega;
-    p.momentum=p.omega*this.inertia(p.tuck);p.bar=-1;p.cooldown=.22;this.airRotation=0;this.turns=0;
+    p.momentum=p.omega*this.inertia(p.tuck);p.bar=-1;p.cooldown=.22;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;p.twist=0;p.twistSpeed=0;
   }
   finish(success){
     if(this.ended)return;this.ended=true;this.success=success;
-    if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else{
+    if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.twist=0;this.player.twistSpeed=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else{
       const p=this.player;
       const kind=p.tuck>.55||Math.abs(p.omega)>7?'roll':Math.cos(p.angle)<-.45?'head':Math.sin(p.angle)<-.55?'belly':Math.sin(p.angle)>.55?'back':'sit';
       const captions={head:['NUPPI EDELLÄ!','Ajatus katkesi hetkeksi.','POKS!'],belly:['MAHALASKU!','Täydet pisteet pinta-alasta.','LÄTS!'],back:['SELKÄPOMPPU!','Maa palautti lähettäjälle.','BOING!'],roll:['PYYKKILINKO!','Vielä yksi kierros, kiitos.','HURRR!'],sit:['PYLLÄHDYS!','Istumapaikka löytyi.','TÖMPS!']};
@@ -108,12 +108,17 @@ class KaariPhysics {
     if(!this.active){if(input.grip||input.tuck)this.active=true;else return;}
     const oldRadius=p.radius;p.tuck+=(Number(!!input.tuck)-p.tuck)*Math.min(1,dt*10);p.radius=76-26*p.tuck;p.cooldown-=dt;
     if(p.bar>=0){
+      p.twist=0;p.twistSpeed=0;
       // Variable-length pendulum: conserve radius² * angular speed when tucking.
       // Gravity supplies torque; directional keys never add energy.
       const angularMomentum=p.omega*oldRadius*oldRadius;
       p.omega=(angularMomentum-K_G*p.radius*Math.sin(p.angle)*dt)/(p.radius*p.radius);p.omega*=Math.exp(-.045*dt);p.omega=clamp(p.omega,-14,14);p.angle+=p.omega*dt;
       const b=this.bars[p.bar];p.x=b.x+Math.sin(p.angle)*p.radius;p.y=b.y+Math.cos(p.angle)*p.radius;if(!input.grip)this.release();
     }else{
+      const twistInput=clamp(Number(input.twist)||0,-1,1);
+      const twistTarget=twistInput*(8+4*p.tuck);
+      p.twistSpeed+=(twistTarget-p.twistSpeed)*(1-Math.exp(-10*dt));
+      p.twist+=p.twistSpeed*dt;
       p.vy+=K_G*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;
       p.omega=p.momentum/this.inertia(p.tuck);
       // Opening the body above the landing mat gently brakes the spin and
@@ -125,12 +130,15 @@ class KaariPhysics {
       }
       const rotation=p.omega*dt;p.angle+=rotation;this.airRotation+=rotation;
       const completed=Math.floor(Math.abs(this.airRotation)/K_TAU);
-      if(completed>this.turns){this.score+=250*(completed-this.turns);this.turns=completed;this.events.push({type:'flip',x:p.x,y:p.y});}
+      if(completed>this.turns){this.score+=250*(completed-this.turns);this.turns=completed;this.events.push({type:'flip',label:this.airRotation>0?'BACKFLIP':'FRONTFLIP',x:p.x,y:p.y});}
+      const twists=Math.floor(Math.abs(p.twist)/K_TAU);
+      if(twists>this.twistTurns){this.score+=200*(twists-this.twistTurns);this.twistTurns=twists;this.events.push({type:'twist',label:`${twists*360}°`,x:p.x,y:p.y});}
+      if(this.turns>0&&this.twistTurns>0&&!this.comboAwarded){this.comboAwarded=true;this.score+=150;this.events.push({type:'combo',label:`${this.airRotation>0?'BACKFLIP':'FRONTFLIP'} ${this.twistTurns*360}°`,x:p.x,y:p.y-25});}
       if(input.grip&&p.cooldown<=0){
         const hand=this.ragdoll.pose(p).handR;
         for(let i=0;i<this.bars.length;i++){
           const b=this.bars[i];if(Math.hypot(hand.x-b.x,hand.y-b.y)>42)continue;
-          p.angle=Math.atan2(p.x-b.x,p.y-b.y);p.omega=(p.vx*Math.cos(p.angle)-p.vy*Math.sin(p.angle))/p.radius;p.bar=i;p.x=b.x+Math.sin(p.angle)*p.radius;p.y=b.y+Math.cos(p.angle)*p.radius;
+          p.angle=Math.atan2(p.x-b.x,p.y-b.y);p.omega=(p.vx*Math.cos(p.angle)-p.vy*Math.sin(p.angle))/p.radius;p.bar=i;p.twist=0;p.twistSpeed=0;p.x=b.x+Math.sin(p.angle)*p.radius;p.y=b.y+Math.cos(p.angle)*p.radius;
           if(!this.visited.has(i)){this.visited.add(i);this.score+=100;this.events.push({type:'catch',index:i,x:b.x,y:b.y});}break;
         }
       }
@@ -144,3 +152,4 @@ class KaariPhysics {
   }
 }
 if(typeof module!=='undefined')module.exports={KaariPhysics,GymnastRagdoll,KAARI_MAPS,K_FLOOR};
+
