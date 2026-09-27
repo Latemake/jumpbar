@@ -18,11 +18,30 @@ class KaariRenderer {
     const rim=new THREE.DirectionalLight('#b9dcff',1.2);rim.position.set(-300,220,-250);this.scene.add(rim);
     this.world=new THREE.Group();this.scene.add(this.world);this.person=new THREE.Group();this.scene.add(this.person);
     this.makePerson();
+    this.makeCrashEffects();
     this.trailGeometry=new THREE.BufferGeometry();this.trailGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(90),3));
     this.trailLine=new THREE.Line(this.trailGeometry,new THREE.LineBasicMaterial({color:'#fff9d7',transparent:true,opacity:.55}));this.trailLine.frustumCulled=false;this.scene.add(this.trailLine);
     this.labels=document.getElementById('effects');this.resize();
   }
   material(color,roughness=.65,metalness=0){const m=new THREE.MeshStandardMaterial({color,roughness,metalness});return m;}
+  makeCrashEffects(){
+    this.crashEffects=new THREE.Group();this.scene.add(this.crashEffects);this.dust=[];this.stars=[];
+    for(let i=0;i<12;i++){
+      const material=new THREE.MeshBasicMaterial({color:i%2?'#fff2cf':'#d7d5ad',transparent:true,opacity:0,depthWrite:false});
+      const puff=new THREE.Mesh(this.sphere,material);this.crashEffects.add(puff);this.dust.push(puff);
+    }
+    const shape=new THREE.Shape();for(let i=0;i<10;i++){const angle=i*Math.PI/5-Math.PI/2,r=i%2?2.8:6.5;const x=Math.cos(angle)*r,y=Math.sin(angle)*r;if(i===0)shape.moveTo(x,y);else shape.lineTo(x,y);}shape.closePath();
+    const geometry=new THREE.ShapeGeometry(shape);
+    for(let i=0;i<5;i++){const star=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color:i%2?'#fff49a':'#ffca3a',side:THREE.DoubleSide}));this.crashEffects.add(star);this.stars.push(star);}
+    this.crashEffects.visible=false;
+  }
+  drawCrash(game){
+    const crash=game.crash,t=game.elapsedAfterEnd;this.crashEffects.visible=!!crash&&t<crash.duration;
+    if(!this.crashEffects.visible)return;
+    this.dust.forEach((p,i)=>{const a=i*Math.PI*2/12,d=12+t*(35+i%3*13);p.position.set(crash.x+Math.cos(a)*d,5+Math.sin(Math.min(1,t)*Math.PI)*12+(i%3)*3,Math.sin(a)*d*.45);p.scale.setScalar(4+t*9+i%3);p.material.opacity=Math.max(0,.65*(1-t/1.2));});
+    const head=game.ragdoll.joints.head;
+    this.stars.forEach((star,i)=>{const a=t*4+i*Math.PI*2/5;star.position.set(head.x+Math.cos(a)*23,K_FLOOR-head.y+25+Math.sin(a*2)*4,Math.sin(a)*16+8);star.rotation.set(0,0,-t*2+i);star.scale.setScalar(Math.min(1,t*5)*Math.min(1,(crash.duration-t)*3));});
+  }
   mesh(geo,mat,parent=this.world){const m=new THREE.Mesh(geo,mat);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
   block(x,y,z,w,h,d,mat,parent=this.world){const m=this.mesh(this.box,mat,parent);m.position.set(x,y,z);m.scale.set(w,h,d);return m;}
   ball(x,y,z,r,mat,parent=this.world,sx=1,sy=1,sz=1){const m=this.mesh(this.sphere,mat,parent);m.position.set(x,y,z);m.scale.set(r*sx,r*sy,r*sz);return m;}
@@ -136,6 +155,7 @@ class KaariRenderer {
     for(const side of ['L','R']){const f=j['foot'+side],k=j['knee'+side];this.jointMeshes['foot'+side].mesh.rotation.z=Math.atan2(f.x-k.x,f.y-k.y);}
     this.barIndicators.forEach((m,i)=>{m.material.color.set(game.visited.has(i)?'#bcf3ac':'#9aafa6');m.material.emissive.set(game.visited.has(i)?'#3b6b2d':'#000000');});
     const positions=this.trailGeometry.attributes.position;for(let i=0;i<trail.length;i++)positions.setXYZ(i,trail[i].x,K_FLOOR-trail[i].y,-12);positions.needsUpdate=true;this.trailGeometry.setDrawRange(0,trail.length);this.trailLine.visible=trail.length>1;
+    this.drawCrash(game);
     this.renderer.render(this.scene,this.camera);
     this.labels.replaceChildren();for(const p of particles){const v=new THREE.Vector3(p.x,K_FLOOR-p.y,0).project(this.camera),el=document.createElement('span');el.textContent=p.label;el.style.left=`${(v.x*.5+.5)*100}%`;el.style.top=`${(-v.y*.5+.5)*100}%`;el.style.opacity=Math.min(1,p.life);this.labels.appendChild(el);}
   }

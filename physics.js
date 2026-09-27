@@ -29,7 +29,25 @@ class GymnastRagdoll {
     return Object.fromEntries(Object.entries(local).map(([id,[x,y]])=>[id,{x:p.x+x*c+y*s,y:p.y-x*s+y*c}]));
   }
   reset(p){for(const [id,q] of Object.entries(this.pose(p)))this.joints[id]={...q,px:q.x,py:q.y};this.fallen=false;}
-  fall(vx,vy){this.fallen=true;for(const q of Object.values(this.joints)){q.px=q.x-clamp(vx,-600,600)/120;q.py=q.y-clamp(vy,-700,700)/120;}}
+  fall(vx,vy,kind='slump'){
+    this.fallen=true;
+    const bounce={head:170,belly:65,back:210,roll:120,sit:95,slump:0}[kind];
+    const spin={head:4,belly:0,back:-2,roll:8,sit:-1,slump:0}[kind]*(vx<0?-1:1);
+    const hip=this.joints.hip;
+    for(const q of Object.values(this.joints)){
+      const dx=q.x-hip.x,dy=q.y-hip.y;
+      q.px=q.x-(clamp(vx,-380,380)*.6-dy*spin)/120;
+      q.py=q.y-((kind==='slump'?clamp(vy,-700,700):-bounce)+dx*spin)/120;
+    }
+  }
+  kick(kind,direction){
+    for(const [id,q] of Object.entries(this.joints)){
+      if(kind==='back'){q.py+=90/120;}
+      if(kind==='belly'&&(id.startsWith('foot')||id.startsWith('knee'))){q.py+=170/120;}
+      if(kind==='sit'&&id.startsWith('hand')){q.py+=230/120;q.px-=direction*100/120;}
+      if(kind==='head'||kind==='roll'){const hip=this.joints.hip;q.px+=(q.y-hip.y)*direction*2/120;q.py-=(q.x-hip.x)*direction*2/120;}
+    }
+  }
   step(dt,p,bar){
     const target=this.pose(p,bar);
     for(const [id,q] of Object.entries(this.joints)){
@@ -60,7 +78,7 @@ class KaariPhysics {
     this.mapIndex=clamp(mapIndex,0,KAARI_MAPS.length-1);this.map=KAARI_MAPS[this.mapIndex];this.bars=this.map.points.map(([x,y])=>({x,y:y+55}));this.mat={x:this.bars.at(-1).x+65,w:this.map.landing+80};
     const b=this.bars[0],angle=-.85;
     this.player={x:b.x+Math.sin(angle)*76,y:b.y+Math.cos(angle)*76,vx:0,vy:0,angle,omega:0,radius:76,tuck:0,bar:0,cooldown:0,momentum:0};
-    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.airRotation=0;this.turns=0;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;
+    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.airRotation=0;this.turns=0;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
   }
   inertia(tuck){return 1-.65*tuck;}
   release(){
@@ -70,11 +88,23 @@ class KaariPhysics {
   }
   finish(success){
     if(this.ended)return;this.ended=true;this.success=success;
-    if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else this.ragdoll.fall(this.player.vx,this.player.vy);
-    this.events.push({type:'finish',success});
+    if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else{
+      const p=this.player;
+      const kind=p.tuck>.55||Math.abs(p.omega)>7?'roll':Math.cos(p.angle)<-.45?'head':Math.sin(p.angle)<-.55?'belly':Math.sin(p.angle)>.55?'back':'sit';
+      const captions={head:['NUPPI EDELLÄ!','Ajatus katkesi hetkeksi.','POKS!'],belly:['MAHALASKU!','Täydet pisteet pinta-alasta.','LÄTS!'],back:['SELKÄPOMPPU!','Maa palautti lähettäjälle.','BOING!'],roll:['PYYKKILINKO!','Vielä yksi kierros, kiitos.','HURRR!'],sit:['PYLLÄHDYS!','Istumapaikka löytyi.','TÖMPS!']};
+      const [title,quip,sound]=captions[kind];this.crash={kind,title,quip,sound,x:p.x,direction:p.vx<0?-1:1,kicked:false,duration:2.35};
+      this.ragdoll.fall(p.vx,p.vy,kind);
+    }
+    this.events.push({type:'finish',success,crash:this.crash});
   }
   step(dt,input={}){
-    const p=this.player;if(this.ended){this.elapsedAfterEnd+=dt;this.ragdoll.step(dt,p,null);return;}
+    const p=this.player;if(this.ended){
+      this.elapsedAfterEnd+=dt;
+      if(this.crash&&!this.crash.kicked&&this.elapsedAfterEnd>.32){this.ragdoll.kick(this.crash.kind,this.crash.direction);this.crash.kicked=true;}
+      this.ragdoll.step(dt,p,null);
+      if(this.crash){p.x=this.ragdoll.joints.hip.x;p.y=this.ragdoll.joints.hip.y;p.vx=0;p.vy=0;}
+      return;
+    }
     if(!this.active){if(input.grip||input.tuck)this.active=true;else return;}
     const oldRadius=p.radius;p.tuck+=(Number(!!input.tuck)-p.tuck)*Math.min(1,dt*10);p.radius=76-26*p.tuck;p.cooldown-=dt;
     if(p.bar>=0){

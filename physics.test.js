@@ -3,6 +3,22 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {KaariPhysics,GymnastRagdoll,KAARI_MAPS,K_FLOOR}=require('./physics');
 const dt=1/120;
+test('five crash poses produce distinct reactions, settle, and reset cleanly',()=>{
+  const cases=[['head',Math.PI,0,0],['belly',-Math.PI/2,0,0],['back',Math.PI/2,0,0],['roll',0,.9,8],['sit',0,0,0]];
+  const signatures=[];
+  for(const [kind,angle,tuck,omega] of cases){
+    const g=new KaariPhysics();Object.assign(g.player,{x:300,y:410,angle,tuck,omega,vx:140,vy:300});g.ragdoll.reset(g.player);g.finish(false);
+    assert.equal(g.crash.kind,kind);assert.equal(g.events.filter(e=>e.type==='finish').length,1);
+    for(let i=0;i<60;i++)g.step(dt);
+    signatures.push(Math.round(g.ragdoll.joints.head.x));
+    assert.equal(g.crash.kicked,true);assert.equal(g.score,0);
+    for(let i=0;i<900;i++)g.step(dt);
+    for(const q of Object.values(g.ragdoll.joints)){assert.ok(Number.isFinite(q.x)&&Number.isFinite(q.y));assert.ok(q.y<=K_FLOOR);}
+    for(const [a,b,len] of g.ragdoll.bones){const qa=g.ragdoll.joints[a],qb=g.ragdoll.joints[b];assert.ok(Math.abs(Math.hypot(qa.x-qb.x,qa.y-qb.y)-len)<2);}
+    g.reset();assert.equal(g.crash,null);assert.equal(g.elapsedAfterEnd,0);assert.equal(g.ragdoll.fallen,false);
+  }
+  assert.ok(new Set(signatures).size>=4);
+});
 test('arms bend together throughout tuck, flight and grip at different rotations',()=>{
   for(const angle of [0,.7,-1.3,Math.PI])for(const tuck of [0,.5,1])for(const attached of [false,true]){
     const p={x:300,y:200,angle,tuck},radius=76-26*tuck;

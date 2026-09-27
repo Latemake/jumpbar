@@ -44,12 +44,13 @@ function step(dt){
   for(const event of game.events){
     if(event.type==='finish'){
       best=Math.max(best,game.score);try{localStorage.setItem('kaari-best-'+game.map.id,best);}catch{}
-      ui['result-label'].textContent=event.success?'PUHDAS ALASTULO':'VIELÄ YKSI YRITYS?';ui['result-title'].textContent=event.success?'TYYLILLÄ!':'HUPS.';ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa · ennätys ${best}`;
+      ui['result-label'].textContent=event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa · ennätys ${best}`;
+      if(event.crash){particles.push({x:event.crash.x,y:K_FLOOR-95,label:event.crash.sound,life:1.8});clearInput();ui.touch.hidden=true;}
     }else{particles.push({x:event.x,y:event.y-40,label:event.type==='flip'?'+250 VOLTTI':'+100',life:1.5});if(event.type==='catch')trail=[];}
     sync();
   }
   game.events=[];
-  if(game.ended&&game.elapsedAfterEnd>1.1)setScreen('result');
+  if(game.ended&&game.elapsedAfterEnd>(game.crash?game.crash.duration:1.1))setScreen('result');
   const p=game.player;
   if(p.bar<0&&!game.ended){trail.push({x:p.x,y:p.y});if(trail.length>30)trail.shift();}
   // Track high flights vertically and pull back enough to retain the floor.

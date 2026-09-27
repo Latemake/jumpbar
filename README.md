@@ -57,3 +57,6 @@ Avaa pelilinkki puhelimen selaimessa. Pysty- ja vaaka-asento toimivat.
 - Kamera näyttää enemmän rataa ja jättää tilaa ohjaimille. Renderöinnin tarkkuutta ja varjoja on kevennetty mobiililaitteille.
 
 Selaimen koko näytön tilan tuki vaihtelee laitteittain. Peli täyttää käytettävissä olevan selainalueen myös ilman sitä.
+## Kaatumiset
+
+Epäonnistunut alastulo valitsee asennon perusteella yhden viidestä koomisesta ragdoll-reaktiosta: nuppi edellä, mahalasku, selkäpomppu, pyykkilinko tai pyllähdys. Pöly, kiertävät tähdet ja sarjakuvatekstit täydentävät animaatiota. Tulosruutu avautuu animaation jälkeen; uuden yrityksen voi aloittaa heti R-näppäimellä tai uudelleenaloituspainikkeella.
