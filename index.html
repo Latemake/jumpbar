@@ -1,0 +1,32 @@
+﻿<!doctype html>
+<html lang="fi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#20104b"><meta name="description" content="Jumpbar — heilu tangolta toiselle, tee voltteja ja löydä lentosi. Pelaa tietokoneella tai puhelimella."><title>Jumpbar</title><link rel="stylesheet" href="style.css"></head>
+<body data-screen="menu">
+<main id="app">
+  <canvas id="game" tabindex="0" aria-label="Voimistelupeli"></canvas>
+  <div id="effects" aria-hidden="true"></div>
+  <section id="menu" class="screen">
+    <div class="menu-top"><span class="wordmark">JUMPBAR<span>✦</span></span><button class="icon" id="fullscreen" aria-label="Koko näyttö" title="Koko näyttö">⛶</button></div>
+    <div class="menu-content">
+      <span class="pill">SWING. FLY. REPEAT.</span>
+      <h1>PAINOVOIMA?<br><em>IHAN SAMA.</em></h1>
+      <p class="menu-tagline">Ota vauhtia. Irrota. Löydä lentosi.</p>
+      <button id="play" class="primary">PELAA <span>↗</span></button>
+      <button id="help-toggle" class="text-button" aria-expanded="false">Miten pelataan? <span>＋</span></button>
+      <div id="help" hidden><div class="keyboard-help"><p><kbd>SPACE</kbd> Pidä ote · vapauta hypätäksesi</p><p><kbd>↓ / S</kbd> Pidä: kerään · vapauta: suoraksi</p><p><kbd>ESC</kbd> Tauko <kbd>R</kbd> Uusi yritys</p></div><div class="touch-help"><p><b>Oikea peukalo: OTE</b><br>Pidä pohjassa tarttuaksesi. Vapauta hypätäksesi.</p><p><b>Vasen peukalo: KERÄÄN</b><br>Pidä kerätäksesi vartalon. Vapauta suoristuaksesi.</p><p>Voit painaa molempia yhtä aikaa. Myös vaaka-asento toimii.</p></div><p>Kerään alhaalla, suoraksi ääriasennossa.</p></div>
+    </div>
+    <div class="map-picker"><div class="map-heading"><span>VALITSE LEIKKIKENTTÄSI</span><span id="menu-best">ENNÄTYS 0</span></div><div class="map-list">
+      <button class="map-card garden" data-map="0" aria-pressed="true"><span class="map-art"><i></i><b>01</b><span class="selected">✓</span></span><span class="map-info"><strong>Puistotreeni</strong><small>HELPPO · 5 TANKOA</small></span></button>
+      <button class="map-card coast" data-map="1" aria-pressed="false"><span class="map-art"><i></i><b>02</b><span class="selected">✓</span></span><span class="map-info"><strong>Rantakaari</strong><small>KESKITASO · 7 TANKOA</small></span></button>
+      <button class="map-card sunset" data-map="2" aria-pressed="false"><span class="map-art"><i></i><b>03</b><span class="selected">✓</span></span><span class="map-info"><strong>Auringonlasku</strong><small>HAASTAVA · 8 TANKOA</small></span></button>
+    </div></div>
+    <span class="menu-sticker" aria-hidden="true">LET'S<br>HANG!<span>↗</span></span>
+  </section>
+  <div id="hud" hidden><div class="hud-score"><strong id="score">0</strong><span id="progress">1 / 5</span></div><div class="hud-actions"><button id="restart" class="icon" aria-label="Uusi yritys" title="Uusi yritys (R)">↻</button><button id="pause-button" class="icon" aria-label="Tauko" title="Tauko (Esc)">Ⅱ</button></div><div id="start-hint"><kbd>SPACE</kbd> ote <span>·</span> <kbd>↓</kbd> kerään</div></div>
+  <div class="touch" id="touch" hidden aria-label="Kosketusohjaimet"><button data-key="ArrowDown" aria-label="Pidä keräasento, vapauta suoristuaksesi" aria-pressed="false"><span class="control-symbol" aria-hidden="true">↓</span><strong>KERÄÄN</strong><small>Vapauta: suoraksi</small></button><button data-key="Space" aria-label="Pidä ote, vapauta hypätäksesi" aria-pressed="false"><span class="control-symbol" aria-hidden="true">✊</span><strong>OTE</strong><small>Vapauta: hyppy</small></button></div>
+  <section id="pause" class="dialog-screen" hidden><div class="dialog"><span class="pill">HENGÄHDÄ HETKI</span><h2>TAUKO.</h2><button id="resume" class="primary">JATKA <span>→</span></button><button id="pause-restart" class="secondary">Uusi yritys</button><button class="text-button" data-menu>Päävalikko</button></div></section>
+  <section id="result" class="dialog-screen" hidden><div class="dialog"><span class="pill" id="result-label"></span><h2 id="result-title"></h2><div class="result-points" id="result-score"></div><p id="result-copy"></p><button id="again" class="primary">UUDELLEEN <span>↗</span></button><button class="text-button" data-menu>Päävalikko</button></div></section>
+</main>
+<script src="physics.js"></script><script src="vendor/three.min.js"></script><script src="renderer.js"></script><script src="game.js"></script>
+</body></html>
+

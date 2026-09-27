@@ -1,0 +1,102 @@
+﻿'use strict';
+const canvas=document.getElementById('game');
+const ui=Object.fromEntries(['menu','hud','touch','pause','result','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
+const game=new KaariPhysics(),keys=new Set(),touchKeys=new Set();
+const touchPointers=new Map();
+const touchMode=navigator.maxTouchPoints>0||matchMedia('(any-pointer: coarse)').matches;
+document.body.dataset.touch=String(touchMode);
+if(touchMode)ui['start-hint'].textContent='Pidä OTE · kerää vauhtia KERÄÄN-napilla';
+const graphics=new KaariRenderer(canvas);
+let width=1000,height=550,scale=1,camera=0,cameraY=160,cameraSpan=480,trail=[],particles=[],best=0,screen='menu',menuTime=0;
+function readBest(){try{best=Number(localStorage.getItem('kaari-best-'+game.map.id))||0;}catch{best=0;}}
+function baseSpan(){return touchMode?Math.max(480,380*height/width):480;}
+function floorMargin(span){return touchMode?(height>width?155:115)*span/height:70;}
+function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;scale=height/480;graphics.resize();if(screen==='play'){cameraSpan=Math.max(cameraSpan,baseSpan());cameraY=cameraSpan/2-floorMargin(cameraSpan);}}
+new ResizeObserver(resize).observe(canvas);
+function held(code){return keys.has(code)||touchKeys.has(code);}
+function controls(){return{grip:held('Space'),tuck:held('ArrowDown')||held('KeyS')};}
+function clearInput(){keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
+function setScreen(next){
+  screen=next;document.body.dataset.screen=next;clearInput();
+  for(const name of ['menu','pause','result'])ui[name].hidden=next!==name;
+  ui.hud.hidden=next==='menu';ui.touch.hidden=next!=='play';
+  if(next==='play')canvas.focus();
+  else if(next==='pause')document.getElementById('resume').focus();
+  else if(next==='result')document.getElementById('again').focus();
+}
+function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`ENNÄTYS ${best}`;}
+function reset(mapIndex=game.mapIndex){
+  clearInput();game.reset(mapIndex);readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;
+  document.querySelectorAll('[data-map]').forEach((button,i)=>button.setAttribute('aria-pressed',String(i===mapIndex)));sync();
+}
+function enterFullscreen(){if(!document.fullscreenElement&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}
+function start(){reset();setScreen('play');enterFullscreen();}
+function menu(){reset();setScreen('menu');}
+function pause(){if(screen==='play'&&!game.ended)setScreen('pause');}
+function resume(){if(game.player.bar>=0)game.active=false;setScreen('play');}
+function step(dt){
+  if(screen==='menu'){
+    menuTime+=dt;const p=game.player,b=game.bars[0];p.angle=-.65+Math.sin(menuTime*1.4)*.38;p.tuck=(Math.sin(menuTime*1.4+.5)+1)*.35;p.radius=76-26*p.tuck;p.x=b.x+Math.sin(p.angle)*p.radius;p.y=b.y+Math.cos(p.angle)*p.radius;game.ragdoll.step(dt,p,b);return;
+  }
+  if(screen!=='play')return;
+  particles.forEach(p=>{p.life-=dt;p.y-=24*dt;});particles=particles.filter(p=>p.life>0);
+  game.step(dt,controls());ui['start-hint'].hidden=game.active;
+  for(const event of game.events){
+    if(event.type==='finish'){
+      best=Math.max(best,game.score);try{localStorage.setItem('kaari-best-'+game.map.id,best);}catch{}
+      ui['result-label'].textContent=event.success?'PUHDAS ALASTULO':'VIELÄ YKSI YRITYS?';ui['result-title'].textContent=event.success?'TYYLILLÄ!':'HUPS.';ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa · ennätys ${best}`;
+    }else{particles.push({x:event.x,y:event.y-40,label:event.type==='flip'?'+250 VOLTTI':'+100',life:1.5});if(event.type==='catch')trail=[];}
+    sync();
+  }
+  game.events=[];
+  if(game.ended&&game.elapsedAfterEnd>1.1)setScreen('result');
+  const p=game.player;
+  if(p.bar<0&&!game.ended){trail.push({x:p.x,y:p.y});if(trail.length>30)trail.shift();}
+  // Track high flights vertically and pull back enough to retain the floor.
+  // Upward velocity gives the camera a short lead before the next apex.
+  const top=Math.max(330,K_FLOOR-p.y+100+(p.bar<0?Math.max(0,-p.vy)*.12:0));
+  const targetSpan=Math.max(baseSpan(),touchMode?(top+65)/(1-(height>width?155:115)/height):top+135),targetY=targetSpan/2-floorMargin(targetSpan);
+  const response=targetSpan>cameraSpan?8:2.5;
+  cameraSpan+=(targetSpan-cameraSpan)*(1-Math.exp(-response*dt));
+  cameraY+=(targetY-cameraY)*(1-Math.exp(-response*dt));
+  const view=width/height*cameraSpan,lead=p.bar<0?Math.max(0,p.vx)*.16:0;
+  const target=Math.max(0,Math.min(game.mat.x+game.mat.w+100-view,p.x+lead-view*.35));camera+=(target-camera)*Math.min(1,dt*5);
+}
+function draw(){const inMenu=screen==='menu',offset=inMenu?game.player.x-width/scale*.72:camera;graphics.draw(game,offset,trail,particles,inMenu?160:cameraY,inMenu?480:cameraSpan);}
+function releaseIfNeeded(){if(screen==='play'&&!held('Space')&&game.active)game.release();}
+window.addEventListener('keydown',e=>{
+  if(e.code==='Escape'){e.preventDefault();if(screen==='play')pause();else if(screen==='pause')resume();return;}
+  if(screen!=='play')return;
+  if(e.target instanceof HTMLElement&&e.target.matches('button,a,input'))return;
+  if(['Space','ArrowDown','ArrowUp'].includes(e.code))e.preventDefault();keys.add(e.code);
+  if(e.code==='KeyR'){reset();canvas.focus();}
+});
+window.addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='Space')releaseIfNeeded();});
+window.addEventListener('blur',pause);document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
+// Resume freezes the attached pose until grip is pressed again, preventing an
+// unavoidable fall after menus clear held keyboard/touch input.
+document.getElementById('resume').onclick=resume;
+canvas.addEventListener('pointerdown',()=>{if(screen==='play')canvas.focus();});
+document.querySelectorAll('[data-key]').forEach(button=>{
+  button.addEventListener('contextmenu',e=>e.preventDefault());
+  button.addEventListener('pointerdown',e=>{if(screen!=='play')return;e.preventDefault();button.setPointerCapture(e.pointerId);touchPointers.set(e.pointerId,button.dataset.key);touchKeys.add(button.dataset.key);button.classList.add('pressed');button.setAttribute('aria-pressed','true');});
+  const up=e=>{
+    if(!touchPointers.has(e.pointerId))return;
+    touchPointers.delete(e.pointerId);
+    if(![...touchPointers.values()].includes(button.dataset.key)){touchKeys.delete(button.dataset.key);button.classList.remove('pressed');button.setAttribute('aria-pressed','false');}
+    if(e.type==='pointercancel'||e.type==='lostpointercapture'){pause();return;}
+    if(button.dataset.key==='Space')releaseIfNeeded();
+  };
+  button.addEventListener('pointerup',up);button.addEventListener('pointercancel',up);button.addEventListener('lostpointercapture',up);
+});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('orientationchange',pause);
+window.visualViewport?.addEventListener('resize',resize);
+document.querySelectorAll('[data-map]').forEach(button=>button.addEventListener('click',()=>{reset(Number(button.dataset.map));}));
+document.querySelectorAll('[data-menu]').forEach(button=>button.onclick=menu);
+document.getElementById('play').onclick=start;document.getElementById('pause-button').onclick=pause;
+for(const id of ['restart','again','pause-restart'])document.getElementById(id).onclick=()=>{reset();setScreen('play');};
+document.getElementById('fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else enterFullscreen();};
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)pause();});
+document.getElementById('help-toggle').onclick=()=>{const help=document.getElementById('help');help.hidden=!help.hidden;document.getElementById('help-toggle').setAttribute('aria-expanded',String(!help.hidden));};
+let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((time-last)/1000,.05);last=time;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame);}reset();setScreen('menu');requestAnimationFrame(frame);
