@@ -1,11 +1,5 @@
 ﻿'use strict';
 // The renderer consumes the 2D simulation. Depth is decorative, never a control axis.
-const JUMPBAR_CHARACTERS=[
-  {id:'spark',name:'Kipinä',style:'Otsapanta',shirt:'#f06c3d',pants:'#263d50',skin:'#dca580',hair:'#293039',shoe:'#f4f3df',badge:'J'},
-  {id:'neon',name:'Neon',style:'Nuttura',shirt:'#26d6bf',pants:'#432969',skin:'#88563e',hair:'#251b35',shoe:'#f0ff8f',badge:'N'},
-  {id:'astro',name:'Astro',style:'Avaruuspuku',shirt:'#eef1ff',pants:'#6b7da9',skin:'#dca580',hair:'#60422e',shoe:'#74dcec',badge:'A'},
-  {id:'shadow',name:'Varjo',style:'Ninja',shirt:'#7652e9',pants:'#24233b',skin:'#dca780',hair:'#24233b',shoe:'#baff75',badge:'V'}
-];
 class KaariRenderer {
   constructor(canvas){
     this.canvas=canvas;
@@ -25,7 +19,7 @@ class KaariRenderer {
     this.sun.shadow.bias=-.0003;this.sun.shadow.normalBias=.6;this.sun.shadow.radius=3;this.scene.add(this.sun,this.sun.target);
     const rim=new THREE.DirectionalLight('#b9dcff',1.2);rim.position.set(-300,220,-250);this.scene.add(rim);
     this.world=new THREE.Group();this.scene.add(this.world);this.person=new THREE.Group();this.scene.add(this.person);
-    this.characterId='spark';this.makePerson();
+    this.characterId='rookie';this.makePerson();
     this.makeCrashEffects();
     this.trailGeometry=new THREE.BufferGeometry();this.trailGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(90),3));
     this.trailLine=new THREE.Line(this.trailGeometry,new THREE.LineBasicMaterial({color:'#fff9d7',transparent:true,opacity:.55}));this.trailLine.frustumCulled=false;this.scene.add(this.trailLine);
@@ -68,23 +62,30 @@ class KaariRenderer {
     const character=JUMPBAR_CHARACTERS.find(c=>c.id===this.characterId)||JUMPBAR_CHARACTERS[0];
     const skin=this.material(character.skin,.7),darkSkin=this.material(character.skin),shirt=this.material(character.shirt,.55),pants=this.material(character.pants,.8),shoe=this.material(character.shoe,.4),sole=this.material('#789493'),hair=this.material(character.hair),white=this.material('#fff8e6');
     darkSkin.color.multiplyScalar(.78);
+    this.bodyScale=character.body;const build=character.body,bare=character.bare;
     this.limbs=[];this.jointMeshes={};this.sleeves=[];
     const limbGeometry=new THREE.CylinderGeometry(.85,1,1,18);
     for(const side of ['L','R']){
-      const z=side==='L'?-7:7;
-      for(const [a,b,rad,mat] of [['chest','elbow'+side,4.5,skin],['elbow'+side,'hand'+side,3.8,skin],['hip','knee'+side,6,pants],['knee'+side,'foot'+side,4.5,pants]]){
-        const mesh=this.mesh(limbGeometry,mat,this.person);this.limbs.push({mesh,a,b,z,rad});
+      const z=(side==='L'?-7:7)*Math.sqrt(build);
+      for(const [a,b,rad,mat] of [['chest','elbow'+side,4.5,skin],['elbow'+side,'hand'+side,3.8,skin],['hip','knee'+side,6,bare?skin:pants],['knee'+side,'foot'+side,4.5,bare?skin:pants]]){
+        const mesh=this.mesh(limbGeometry,mat,this.person);this.limbs.push({mesh,a,b,z,rad:rad*Math.sqrt(build)});
       }
-      for(const [id,rad,mat] of [['elbow'+side,4.4,skin],['hand'+side,4.2,skin],['knee'+side,5.4,pants],['foot'+side,5,shoe]])this.jointMeshes[id]={mesh:this.ball(0,0,z,rad,mat,this.person),z,rad};
+      for(const [id,rad,mat] of [['elbow'+side,4.4,skin],['hand'+side,4.2,skin],['knee'+side,5.4,bare?skin:pants],['foot'+side,5,shoe]])this.jointMeshes[id]={mesh:this.ball(0,0,z,rad,mat,this.person),z,rad};
       const foot=this.jointMeshes['foot'+side].mesh;foot.scale.set(7,4,5.5);
+      if(!bare){
       const pad=this.block(0,-2.8,0,12,1.4,9,sole,foot);pad.scale.set(1.6,.35,1.5);pad.position.set(0,-.65,0);
       const stripe=this.block(.15,.15,0,.8,.28,1.98,shirt,foot);
       this.ball(-.48,.58,0,.47,pants,foot,1,.6,1.8);
-      const sleeve=this.mesh(this.cylinder,shirt,this.person);this.sleeves.push({mesh:sleeve,side,z});
+      }
+      const sleeve=this.mesh(this.cylinder,shirt,this.person);sleeve.visible=!bare;this.sleeves.push({mesh:sleeve,side,z});
     }
     const profile=[[0,-1],[.66,-1],[.78,-.85],[.76,-.3],[.88,.35],[1,.62],[.89,.85],[.42,1],[0,1]].map(([r,y])=>new THREE.Vector2(r,y));
     this.torso=this.mesh(new THREE.LatheGeometry(profile,24),shirt,this.person);this.torso.scale.set(12,20,9);
-    this.hips=this.mesh(this.sphere,pants,this.person);this.hips.scale.set(11,8,9);
+    this.hips=this.mesh(this.sphere,pants,this.person);this.hips.scale.set(11*build,8,9*build);
+    if(bare){
+      const waistband=this.mesh(this.cylinder,white,this.hips);waistband.position.y=.55;waistband.scale.set(.95,.18,.95);
+      if(character.id==='rookie')for(let i=0;i<7;i++)this.ball(.78,(i%3-1)*.45,(i%2?1:-1)*.55,.12,this.material('#5a9dce'),this.hips);
+    }
     this.neck=this.mesh(this.cylinder,skin,this.person);
     this.headGroup=new THREE.Group();this.person.add(this.headGroup);
     this.ball(0,0,0,10,skin,this.headGroup,1,1.12,.92);
@@ -118,7 +119,9 @@ class KaariRenderer {
       this.rod([0,3,-11],[-6,-7,-13],2,shirt,this.characterGear);
       this.rod([0,3,-11],[4,-10,-12],1.8,shirt,this.characterGear);
     }
-    this.jersey=new THREE.Group();this.person.add(this.jersey);
+    this.jersey=new THREE.Group();this.person.add(this.jersey);this.jersey.visible=!bare;
+    if(character.id==='bruno'){this.ball(0,-3,8.4,3,hair,this.headGroup,2,.5,.4);this.ball(0,-5,2,9,skin,this.headGroup,1.1,.55,.8);}
+    this.belly=bare?this.ball(0,0,0,1,skin,this.person):null;
     const graphic=document.createElement('canvas');graphic.width=128;graphic.height=192;
     const paint=graphic.getContext('2d');paint.fillStyle=character.id==='astro'?'#244670':'#fff5d6';paint.font='900 120px sans-serif';paint.textAlign='center';paint.fillText(character.badge,64,132);paint.fillRect(20,152,88,8);
     const texture=new THREE.CanvasTexture(graphic);texture.colorSpace=THREE.SRGBColorSpace;
@@ -341,7 +344,8 @@ class KaariRenderer {
     for(const sleeve of this.sleeves){const start=point('chest',sleeve.z),end=point('elbow'+sleeve.side,sleeve.z);this.placeRod(sleeve.mesh,start,start.map((v,i)=>v+(end[i]-v)*.38),5.8);}
     for(const [id,{mesh,z}] of Object.entries(this.jointMeshes))mesh.position.set(...point(id,z));
     const hip=new THREE.Vector3(...point('hip')),chest=new THREE.Vector3(...point('chest')),dir=chest.clone().sub(hip);
-    this.torso.position.copy(hip).add(chest).multiplyScalar(.5);this.torso.quaternion.setFromUnitVectors(this.up,dir.clone().normalize());this.torso.scale.set(11.5,dir.length()*.69,8.5);
+    this.torso.position.copy(hip).add(chest).multiplyScalar(.5);this.torso.quaternion.setFromUnitVectors(this.up,dir.clone().normalize());this.torso.scale.set(11.5*this.bodyScale,dir.length()*.69,8.5*this.bodyScale);
+    if(this.belly){this.belly.position.copy(this.torso.position);this.belly.quaternion.copy(this.torso.quaternion);this.belly.scale.set(this.bodyScale>1.3?20:9,14,9*this.bodyScale);this.belly.position.add(new THREE.Vector3(this.bodyScale>1.3?4:1,-3,0).applyQuaternion(this.torso.quaternion));}
     this.hips.position.copy(hip);this.hips.quaternion.copy(this.torso.quaternion);
     this.jersey.position.copy(this.torso.position).add(new THREE.Vector3(11,0,0).applyQuaternion(this.torso.quaternion));this.jersey.quaternion.copy(this.torso.quaternion);
     this.placeRod(this.neck,point('chest'),point('head'),4.2);

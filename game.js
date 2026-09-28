@@ -7,21 +7,36 @@ const touchMode=navigator.maxTouchPoints>0||matchMedia('(any-pointer: coarse)').
 document.body.dataset.touch=String(touchMode);
 if(touchMode)ui['start-hint'].textContent='Pidä OTE · kerää vauhtia KERÄÄN-napilla';
 const graphics=new KaariRenderer(canvas);
-let selectedCharacter='spark';
-try{const saved=localStorage.getItem('jumpbar-character');if(JUMPBAR_CHARACTERS.some(c=>c.id===saved))selectedCharacter=saved;}catch{}
+let campaignSave=null;try{campaignSave=JSON.parse(localStorage.getItem('jumpbar-campaign-v1'));}catch{}
+const campaign=new JumpbarCampaign(campaignSave);
+let selectedCharacter=campaign.data.equipped;
+const initialStartHint=ui['start-hint'].innerHTML;
+function saveCampaign(){try{localStorage.setItem('jumpbar-campaign-v1',JSON.stringify(campaign.data));}catch{document.getElementById('wallet').title='Tallennus ei ole saatavilla. Edistyminen säilyy tämän pelikerran ajan.';}}
+function updateCampaignMenu(){
+  const c=JUMPBAR_CHARACTERS.find(c=>c.id===selectedCharacter),owned=campaign.owns(c.id),chapter=campaign.chapter(game.mapIndex),unlocked=campaign.available(game.mapIndex);
+  document.getElementById('wallet').textContent='◈ '+campaign.data.coins;
+  document.getElementById('character-ability').textContent=c.ability+' · '+c.instruction;
+  const buy=document.getElementById('buy-character');buy.hidden=owned;buy.disabled=campaign.data.coins<c.price;buy.textContent=buy.disabled?'◈ '+c.price+' · puuttuu '+(c.price-campaign.data.coins):'OSTA · ◈ '+c.price;
+  document.getElementById('chapter-title').textContent=chapter.title;
+  document.getElementById('chapter-goal').textContent=unlocked?'TAVOITE '+chapter.goal+' P · '+('★'.repeat(campaign.stars(game.mapIndex))||'☆☆☆'):'LUKITTU · suorita edellinen luku';
+  document.getElementById('chapter-story').textContent=chapter.story;
+  const play=document.getElementById('play');play.disabled=!owned||!unlocked;play.textContent=!unlocked?'LUKITTU':!owned?'VALITSE OMA HAHMO':campaign.cleared(game.mapIndex)?'PELAA UUDELLEEN ↗':'ALOITA LUKU ↗';
+}
+document.getElementById('buy-character').onclick=()=>{if(campaign.buy(selectedCharacter)){saveCampaign();selectCharacter(selectedCharacter);}};
 function selectCharacter(id){
   const character=JUMPBAR_CHARACTERS.find(c=>c.id===id)||JUMPBAR_CHARACTERS[0];
   selectedCharacter=character.id;graphics.setCharacter(character.id);
-  document.getElementById('character-name').textContent=character.name;document.getElementById('character-style').textContent=character.style;document.getElementById('character-counter').textContent=String(JUMPBAR_CHARACTERS.indexOf(character)+1).padStart(2,'0')+' / 04';
+  document.getElementById('character-name').textContent=character.name;document.getElementById('character-style').textContent=character.style;document.getElementById('character-counter').textContent=String(JUMPBAR_CHARACTERS.indexOf(character)+1).padStart(2,'0')+' / '+String(JUMPBAR_CHARACTERS.length).padStart(2,'0');
   document.querySelectorAll('[data-character]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.character===character.id)));
-  try{localStorage.setItem('jumpbar-character',character.id);}catch{}
+  if(campaign.equip(character.id)){game.characterId=character.id;saveCampaign();}
+  updateCampaignMenu();
 }
 function cycleCharacter(direction){const index=JUMPBAR_CHARACTERS.findIndex(c=>c.id===selectedCharacter);selectCharacter(JUMPBAR_CHARACTERS[(index+direction+JUMPBAR_CHARACTERS.length)%JUMPBAR_CHARACTERS.length].id);}
 document.getElementById('character-prev').onclick=()=>cycleCharacter(-1);
 document.getElementById('character-next').onclick=()=>cycleCharacter(1);
 selectCharacter(selectedCharacter);
 let width=1000,height=550,scale=1,camera=0,cameraY=160,cameraSpan=480,trail=[],particles=[],best=0,screen='menu',menuTime=0;
-function readBest(){try{best=Number(localStorage.getItem('kaari-best-'+game.map.id))||0;}catch{best=0;}}
+function readBest(){best=campaign.data.records[game.mapIndex]?.best||0;}
 function baseSpan(){return touchMode?(height>width?460:360):480;}
 function floorMargin(span){return touchMode?(height>width?155:115)*span/height:70;}
 function followMobilePlayer(dt=0,snap=false){
@@ -41,8 +56,8 @@ function followMobilePlayer(dt=0,snap=false){
 function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;scale=height/480;graphics.resize();if(touchMode&&screen!=='menu')followMobilePlayer(0,true);}
 new ResizeObserver(resize).observe(canvas);
 function held(code){return keys.has(code)||touchKeys.has(code);}
-function controls(){return{grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
-function clearInput(){keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
+function controls(){return{special:held('KeyE'),grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
+function clearInput(){if(game.grounded){game.groundHeld=false;game.groundCharge=0;}keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
 function setScreen(next){
   screen=next;document.body.dataset.screen=next;clearInput();
   document.getElementById('target-guide').hidden=true;
@@ -72,22 +87,24 @@ function showCombo(event){
   }
 }
 for(let i=0;i<12;i++)document.getElementById('combo-sparks').appendChild(document.createElement('i'));
-function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`ENNÄTYS ${best}`;}
+function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`ENNÄTYS ${best}`;document.getElementById('hud-goal').textContent=`/ ${campaign.chapter(game.mapIndex).goal} P`;}
 function updateMapCarousel(){
-  const count=KAARI_MAPS.length;
+  const count=JUMPBAR_CHAPTERS.length,current=JUMPBAR_CHAPTERS.findIndex(c=>c.map===game.mapIndex);
   document.querySelectorAll('[data-map]').forEach(button=>{
-    let offset=(Number(button.dataset.map)-game.mapIndex+count)%count;if(offset>count/2)offset-=count;
+    const offset=Number(button.dataset.chapter)-current;
+    const map=Number(button.dataset.map),locked=!campaign.available(map);button.classList.toggle('locked',locked);button.querySelector('.map-info small').textContent=locked?'LUKITTU':campaign.cleared(map)?'★'.repeat(campaign.stars(map))+' · SUORITETTU':'TAVOITE '+campaign.chapter(map).goal+' P';
     button.dataset.offset=offset;button.setAttribute('aria-pressed',String(offset===0));button.tabIndex=Math.abs(offset)<=2?0:-1;button.setAttribute('aria-hidden',String(Math.abs(offset)>2));
   });
-  document.getElementById('map-counter').textContent=`${String(game.mapIndex+1).padStart(2,'0')} / ${String(count).padStart(2,'0')}`;
-  document.getElementById('map-selected-name').textContent=game.map.name;
+  document.getElementById('map-counter').textContent=`${String(current+1).padStart(2,'0')} / ${String(count).padStart(2,'0')}`;
+  document.getElementById('map-selected-name').textContent=game.map.name;document.getElementById('map-prev').disabled=current===0;document.getElementById('map-next').disabled=current===count-1;updateCampaignMenu();
 }
-function cycleMap(direction){reset((game.mapIndex+direction+KAARI_MAPS.length)%KAARI_MAPS.length);}
+function cycleMap(direction){const current=JUMPBAR_CHAPTERS.findIndex(c=>c.map===game.mapIndex);reset(JUMPBAR_CHAPTERS[clamp(current+direction,0,JUMPBAR_CHAPTERS.length-1)].map);}
 const mapTrack=document.getElementById('map-track');
-for(const [index,map] of KAARI_MAPS.entries()){
-  const button=document.createElement('button');button.className=`map-card ${map.id}`;button.dataset.map=index;button.type='button';
+for(const [chapterIndex,chapter] of JUMPBAR_CHAPTERS.entries()){
+  const index=chapter.map,map=KAARI_MAPS[index];
+  const button=document.createElement('button');button.className=`map-card ${map.id}`;button.dataset.map=index;button.dataset.chapter=chapterIndex;button.type='button';
   button.setAttribute('aria-label',`${map.name}, ${map.description}`);
-  button.innerHTML=`<span class="map-art"><i></i><b>${String(index+1).padStart(2,'0')}</b></span><span class="map-info"><strong>${map.name}</strong><small>${map.description.split(' · ').slice(0,2).join(' · ')}</small></span>`;
+  button.innerHTML=`<span class="map-art"><i></i><b>${String(chapterIndex+1).padStart(2,'0')}</b></span><span class="map-info"><strong>${map.name}</strong><small>${map.description.split(' · ').slice(0,2).join(' · ')}</small></span>`;
   button.onclick=()=>{if(performance.now()>mapDrag.ignoreUntil)reset(index);};mapTrack.appendChild(button);
 }
 const mapDrag={id:null,startX:0,startY:0,dx:0,dragging:false,ignoreUntil:0};
@@ -98,12 +115,12 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])mapTrack.ad
 for(const [id,direction] of [['map-prev',-1],['map-next',1]]){const button=document.getElementById(id);button.addEventListener('pointerup',e=>{if(e.button!==0)return;e.preventDefault();cycleMap(direction);});button.onclick=e=>{if(e.detail===0)cycleMap(direction);};}
 mapTrack.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();e.stopPropagation();cycleMap(e.code==='ArrowRight'?1:-1);}});
 function reset(mapIndex=game.mapIndex){
-  clearInput();clearCombo();game.reset(mapIndex);readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;
+  clearInput();clearCombo();game.reset(mapIndex);game.characterId=campaign.data.equipped;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
   if(touchMode)followMobilePlayer(0,true);
   updateMapCarousel();sync();
 }
 function enterFullscreen(){if(!document.fullscreenElement&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}
-function start(){reset();setScreen('play');enterFullscreen();}
+function start(){if(!campaign.available(game.mapIndex)||!campaign.owns(selectedCharacter))return;reset();setScreen('play');enterFullscreen();}
 function menu(){reset();setScreen('menu');}
 function pause(){if(screen==='play'&&!game.ended)setScreen('pause');}
 function resume(){if(game.player.bar>=0)game.active=false;setScreen('play');}
@@ -113,15 +130,24 @@ function step(dt){
   }
   if(screen!=='play')return;
   particles.forEach(p=>{p.life-=dt;p.y-=24*dt;});particles=particles.filter(p=>p.life>0);
-  game.step(dt,controls());ui['start-hint'].hidden=game.active;
+  game.step(dt,controls());ui['start-hint'].hidden=game.active&&!game.grounded;if(game.grounded)ui['start-hint'].textContent='KERÄÄ → VAPAUTA · pomppaa takaisin tangolle';
+  document.querySelector('.special-control').classList.toggle('spent',game.specialAwarded);
   for(const event of game.events){
     if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
     }else if(event.type==='finish'){
-      best=Math.max(best,game.score);try{localStorage.setItem('kaari-best-'+game.map.id,best);}catch{}
+      const reward=campaign.claim(game);saveCampaign();readBest();
       ui['result-label'].textContent=event.splash?(!event.success?'KÄY MOLEMMILLA TANGOILLA':event.splash.clean?'SIISTI VESIHYPPY +200':'LOISKAUS!'):event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'LOISKIS!':'TANKO PUUTTUU!'):event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa / paras combo ${game.maxChain} · ennätys ${best}`;
+      if(reward){
+        document.getElementById('result-reward').textContent='+'+reward.coins+' ◈ KOLIKKOA';
+        const chapter=campaign.chapter(game.mapIndex),cleared=campaign.cleared(game.mapIndex),index=JUMPBAR_CHAPTERS.indexOf(chapter);
+        document.getElementById('result-unlock').textContent=reward.firstClear?(reward.allClear?'Kalsareista mestariksi! Tarina suoritettu. Kerää seuraavaksi kaikki tähdet.':'Luku suoritettu! Seuraava rata on nyt auki.'):cleared?'Luku suoritettu · paranna tähtitulostasi.':event.success?'Maali saavutettu! Kerää vielä '+reward.missing+' pistettä samalla suorituksella.':'Laskeudu maaliin ja kerää '+chapter.goal+' pistettä avataksesi seuraavan luvun.';
+        document.getElementById('next-chapter').hidden=!cleared||index===JUMPBAR_CHAPTERS.length-1;
+        if(reward.allClear&&reward.firstClear)ui['result-title'].textContent='MESTARI!';
+        updateCampaignMenu();
+      }
       if(event.splash){particles.push({x:event.splash.x,y:K_FLOOR-60,label:!event.success?'SPLASH!':event.splash.clean?'+700 SPLASH!':'+500 SPLASH!',life:1.6});clearInput();ui.touch.hidden=true;}
       if(event.crash){particles.push({x:event.crash.x,y:K_FLOOR-95,label:event.crash.sound,life:1.8});clearInput();ui.touch.hidden=true;}
-    }else{const label=event.type==='flip'?`+250 ${event.label}`:event.type==='twist'?`+200 ${event.label}`:event.type==='combo'?`COMBO +150 · ${event.label}`:'+100';if(event.type==='combo')particles=[];particles.push({x:event.x,y:event.y-40,label,life:event.type==='combo'?2:1.5});if(event.type==='catch')trail=[];}
+    }else{const label=event.type==='special'?`+${event.points} ${event.label}`:event.type==='bounce'||event.type==='ground'?event.label:event.type==='flip'?`+250 ${event.label}`:event.type==='twist'?`+200 ${event.label}`:event.type==='combo'?`COMBO +150 · ${event.label}`:'+100';if(event.type==='combo')particles=[];particles.push({x:event.x,y:event.y-40,label,life:event.type==='combo'?2:1.5});if(event.type==='catch')trail=[];}
     sync();
   }
   game.events=[];
@@ -172,12 +198,13 @@ window.addEventListener('orientationchange',pause);
 window.visualViewport?.addEventListener('resize',resize);
 
 document.querySelectorAll('[data-menu]').forEach(button=>button.onclick=menu);
+document.getElementById('next-chapter').onclick=()=>{const index=JUMPBAR_CHAPTERS.findIndex(c=>c.map===game.mapIndex);if(index<JUMPBAR_CHAPTERS.length-1&&campaign.available(JUMPBAR_CHAPTERS[index+1].map)){reset(JUMPBAR_CHAPTERS[index+1].map);selectCharacter(campaign.data.equipped);setScreen('menu');}};
 document.getElementById('play').onclick=start;document.getElementById('pause-button').onclick=pause;
 for(const id of ['restart','again','pause-restart'])document.getElementById(id).onclick=()=>{reset();setScreen('play');};
 document.getElementById('fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else enterFullscreen();};
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)pause();});
 document.getElementById('help-toggle').onclick=()=>{const help=document.getElementById('help');help.hidden=!help.hidden;document.getElementById('help-toggle').setAttribute('aria-expanded',String(!help.hidden));};
-let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((time-last)/1000,.05);last=time;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame);}reset();setScreen('menu');requestAnimationFrame(frame);
+let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((time-last)/1000,.05);last=time;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame);}reset(JUMPBAR_CHAPTERS[campaign.unlocked].map);setScreen('menu');requestAnimationFrame(frame);
 
 
 

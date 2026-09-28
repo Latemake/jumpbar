@@ -197,7 +197,51 @@ test('two bar courses and four water courses with forgiving entries and clean-di
       const g=new KaariPhysics(index);g.active=true;if(!missedBar)g.visited=new Set([0,1]);
       Object.assign(g.player,{bar:-1,x:missedBar?g.mat.x+180:200,y:missedBar?K_FLOOR-65:g.cliffY-65,angle:0,tuck:0,vx:0,vy:100,momentum:0});g.ragdoll.reset(g.player);
       for(let i=0;i<120&&!g.ended;i++)g.step(dt);
-      assert.equal(g.success,false);assert.equal(g.ended,true);
+      assert.equal(g.success,false);assert.equal(g.ended,missedBar);assert.equal(g.grounded,!missedBar);
     }
+  }
+});
+
+test('feet-first falls can recover with a quick tuck-release and re-grip a bar',()=>{
+  const g=new KaariPhysics();g.active=true;
+  Object.assign(g.player,{bar:-1,x:300,y:K_FLOOR-75,angle:.7,tuck:0,vx:0,vy:120,momentum:0});g.ragdoll.reset(g.player);
+  for(let i=0;i<90&&!g.grounded&&!g.ended;i++)g.step(dt);
+  assert.equal(g.grounded,true);assert.equal(g.ended,false);assert.equal(g.chain,0);
+  for(let i=0;i<18;i++)g.step(dt,{tuck:true,grip:true});g.step(dt,{grip:true});
+  assert.equal(g.grounded,false);assert.ok(g.player.vy<-500);assert.ok(g.events.some(e=>e.type==='bounce'));
+  for(let i=0;i<180&&g.player.bar<0&&!g.ended;i++)g.step(dt,{grip:true});
+  assert.equal(g.player.bar,1);assert.equal(g.ended,false);
+});
+test('long ground tucks do not launch and Möhkö has a stronger recovery bounce',()=>{
+  function standing(id){const g=new KaariPhysics();g.characterId=id;g.active=true;g.grounded=true;Object.assign(g.player,{bar:-1,x:300,y:K_FLOOR-56,angle:0});g.ragdoll.reset(g.player);return g;}
+  const slow=standing('rookie');for(let i=0;i<100;i++)slow.step(dt,{tuck:true});slow.step(dt);assert.equal(slow.grounded,true);
+  const rookie=standing('rookie'),bruno=standing('bruno');for(const g of [rookie,bruno]){for(let i=0;i<15;i++)g.step(dt,{tuck:true});g.step(dt);}
+  assert.ok(bruno.player.vy<rookie.player.vy);assert.equal(rookie.score,0);
+});
+test('character-specific aerial tricks need their inputs, award once, and never farm while grounded',()=>{
+  const {JUMPBAR_CHARACTERS}=require('./physics');
+  for(const c of JUMPBAR_CHARACTERS){
+    const g=new KaariPhysics();g.characterId=c.id;g.active=true;
+    Object.assign(g.player,{bar:-1,x:450,y:-200,angle:0,vx:0,vy:-200,momentum:c.special==='corkscrew'?4.5:0,tuck:c.special==='cannon'||c.special==='corkscrew'?1:0});g.ragdoll.reset(g.player);
+    const input={special:true,tuck:c.special==='cannon'||c.special==='corkscrew',twist:c.special==='corkscrew'?1:0};
+    for(let i=0;i<120&&!g.ended;i++)g.step(dt,input);
+    assert.equal(g.events.filter(e=>e.type==='special'&&e.label===c.ability.toUpperCase()).length,1,c.id);
+    assert.equal(g.specialAwarded,true);
+    g.reset();g.active=true;g.grounded=true;g.player.bar=-1;
+    for(let i=0;i<90;i++)g.step(dt,input);
+    assert.equal(g.score,0,c.id);
+  }
+});
+
+test('every water chapter score gate is reachable with the free starter character',()=>{
+  const {JUMPBAR_CHAPTERS}=require('./campaign'),samples=launchSamples();
+  for(const chapter of JUMPBAR_CHAPTERS.filter(c=>KAARI_MAPS[c.map].mode==='dive')){
+    let reached=false;
+    search:for(const state of samples)for(const tuckTime of [1.5,.8,.4]){
+      const g=launch(chapter.map,1,state);g.visited=new Set([0,1]);g.score=100;
+      for(let i=0;i<300&&!g.ended;i++)g.step(dt,{tuck:i*dt<tuckTime,twist:1,special:true});
+      if(g.success&&g.score>=chapter.goal){reached=true;break search;}
+    }
+    assert.ok(reached,chapter.title);
   }
 });

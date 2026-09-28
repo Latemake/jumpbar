@@ -103,3 +103,30 @@ Visit both bars, then launch over the cliff into the lake. A water finish awards
 are accepted. Flight tricks and combo bonuses still count. Landing on the cliff
 or skipping a bar does not complete the course. The four locations have distinct
 rock formations, shoreline scenery, animated water, spray and expanding ripples.
+
+## Campaign and characters
+
+The six chapters now unlock in order: park, turquoise bay, archipelago,
+golden cliffs, rooftops, mountain lake. A successful finish must meet that
+chapter's score goal. Replays earn up to three stars. All gates can be reached
+with the free starter character; characters are optional purchases.
+
+Campaign progress uses `jumpbar-campaign-v1` in localStorage. Runs grant coins
+on the results screen (including trick earnings on failed runs), successful
+finishes add 20, and first chapter clears add 60-200. Each run can be claimed
+once and first-clear bonuses cannot repeat. Old sandbox records are retained
+under their old storage keys but do not unlock campaign chapters.
+
+Kalsari-Kalle starts in patterned underwear. The shop adds round-bodied Mohko,
+slender Neon, Varjo and the bulky Astro. Each has a distinct special trick;
+Neon/Varjo turn faster and Mohko/ Astro have stronger recovery jumps.
+Hold E or the minimal TEMPPU touch button to perform the selected character's
+special. The character menu explains the required tuck/twist input. Hold poses
+for 0.4 seconds, or combine a flip with a twist for Varjo's corkscrew. Each
+special scores once per flight. Straight-body flips receive an extra bonus.
+
+Feet-first falls onto solid ground can be recovered: tuck briefly (0.035-0.6
+seconds) and release to bounce towards the next missed bar. Hold grip to catch.
+Landing assistance is stronger; head-first falls still end the attempt.
+
+Validation: `node --test physics.test.js campaign.test.js`.
