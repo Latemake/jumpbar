@@ -149,3 +149,5 @@ Character rendering now uses a single smooth torso profile (including Bruno's
 belly), continuous bending limb surfaces, and textured underwear / shorts.
 There are no separate elbow/knee balls or overlapping belly pieces. Physics
 and existing chapter progress are preserved.
+
+Grab: hold Up / GRAB for 0.35 s to hold one foot for 150 points once per flight. All characters can use it; the first run after this update includes a tutorial. Feet-first landings now absorb impact with a damped knee bend and arm balance, including successful finishes. Golden Cliffs and Alpine Lake have much taller drops; the mobile camera widens to include the water and cliff edge.

@@ -197,14 +197,14 @@ class KaariRenderer {
     const points=game.map.terrain.filter(([x])=>x>=-900),shape=new THREE.Shape();
     shape.moveTo(-900,-35);shape.lineTo(edge-90,-35);
     const summit=terrainHeight(game.map,edge);
-    if(alpine){shape.lineTo(edge+45,35);shape.lineTo(edge-55,110);shape.lineTo(edge+15,180);shape.lineTo(edge-45,265);shape.lineTo(edge+22,330);}
-    else if(warm){shape.lineTo(edge-55,45);shape.lineTo(edge-95,135);shape.lineTo(edge-38,225);}
+    if(alpine){shape.lineTo(edge+45,summit*.08);shape.lineTo(edge-55,summit*.28);shape.lineTo(edge+15,summit*.46);shape.lineTo(edge-45,summit*.67);shape.lineTo(edge+22,summit*.84);}
+    else if(warm){shape.lineTo(edge-55,summit*.15);shape.lineTo(edge-95,summit*.46);shape.lineTo(edge-38,summit*.78);}
     else if(islands){shape.lineTo(edge+50,12);shape.lineTo(edge+24,45);shape.lineTo(edge-15,82);}
     else{shape.lineTo(edge+65,8);shape.lineTo(edge+38,50);shape.lineTo(edge+12,95);}
     shape.lineTo(edge,summit);
     for(const [x,h] of [...points].reverse())shape.lineTo(x,h);
     shape.closePath();
-    if(warm){const arch=new THREE.Path();arch.absellipse(280,100,90,75,0,Math.PI*2,true);shape.holes.push(arch);}
+    if(warm){const arch=new THREE.Path();arch.absellipse(280,summit*.34,110,summit*.26,0,Math.PI*2,true);shape.holes.push(arch);}
     const geo=new THREE.ExtrudeGeometry(shape,{depth:180,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:9,bevelThickness:8});geo.userData.worldOwned=true;
     const land=this.mesh(geo,rock);land.position.z=-90;
     // A sloping lip follows the actual collision surface, not a rectangular cap.

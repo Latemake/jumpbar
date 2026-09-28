@@ -40,23 +40,27 @@ function readBest(){best=campaign.data.records[game.mapIndex]?.best||0;}
 function baseSpan(){return touchMode?(height>width?460:360):480;}
 function floorMargin(span){return touchMode?(height>width?155:115)*span/height:70;}
 function followMobilePlayer(dt=0,snap=false){
-  const p=game.player,span=baseSpan(),view=width/height*span;
+  const p=game.player;
+  const highCliff=game.water&&terrainHeight(game.map,game.mat.x)>400&&!game.splash;
+  const altitude=Math.max(0,K_FLOOR-p.y);
+  const desiredSpan=highCliff?Math.max(baseSpan(),(altitude+180)/(1-Math.min(.34,155/height))):baseSpan();
+  const span=snap?desiredSpan:cameraSpan+(desiredSpan-cameraSpan)*(1-Math.exp(-5*dt)),view=width/height*span;
   const flying=p.bar<0&&!game.ended;
   const leadX=flying?clamp(p.vx*.035,-12,12):0;
   const leadY=flying?clamp(-p.vy*.025,-12,12):0;
   // Keep the body near the centre of the usable view, above the thumb controls.
-  // Unlike the desktop camera, do not zoom out to include the floor or map edges.
-  const targetX=p.x+leadX-view/2,targetY=K_FLOOR-p.y+leadY-span*.065;
+  // Tall cliffs widen the view to show both the launch point and the water.
+  const targetX=(highCliff?(p.x+Math.max(p.x,game.mat.x+75))/2:p.x+leadX)-view/2,targetY=highCliff?span/2-155*span/height:K_FLOOR-p.y+leadY-span*.065;
   const blend=snap?1:1-Math.exp(-16*dt);
   cameraSpan=span;camera+=(targetX-camera)*blend;cameraY+=(targetY-cameraY)*blend;
   // Bound tracking lag on fast launches, even on a narrow portrait screen.
-  camera=clamp(camera,p.x-view*.59,p.x-view*.41);
-  cameraY=clamp(cameraY,K_FLOOR-p.y-span*.14,K_FLOOR-p.y+span*.015);
+  if(!highCliff)camera=clamp(camera,p.x-view*.59,p.x-view*.41);
+  if(!highCliff)cameraY=clamp(cameraY,K_FLOOR-p.y-span*.14,K_FLOOR-p.y+span*.015);
 }
 function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;scale=height/480;graphics.resize();if(touchMode&&screen!=='menu')followMobilePlayer(0,true);}
 new ResizeObserver(resize).observe(canvas);
 function held(code){return keys.has(code)||touchKeys.has(code);}
-function controls(){return{bomb:held('KeyB')&&game.characterId==='bruno',dive:held('KeyF')&&campaign.trickUnlocked('deathdive'),special:held('KeyE'),grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
+function controls(){return{grab:held('ArrowUp'),bomb:held('KeyB')&&game.characterId==='bruno',dive:held('KeyF')&&campaign.trickUnlocked('deathdive'),special:held('KeyE'),grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
 function clearInput(){if(game.grounded){game.groundHeld=false;game.groundCharge=0;}keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
 function setScreen(next){
   screen=next;document.body.dataset.screen=next;clearInput();

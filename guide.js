@@ -52,6 +52,7 @@ function drawGuide(now){
   if(t.demo==='flip'||t.demo==='frontflip'){angle=u*Math.PI*2*(t.demo==='frontflip'?-1:1);tuck=u>.17&&u<.73?1:0;}
   if(t.demo==='layout')angle=u*Math.PI*2;
   if(t.demo==='candle')pose=u>.2?'candle':null;
+  if(t.demo==='grab')pose=u>.2&&u<.8?'grab':null;
   if(t.demo==='pike')pose=u>.2&&u<.8?'pike':null;
   if(t.demo==='cannon'){tuck=u>.2?1:0;angle=.4;pose='cannon';}
   if(t.demo==='deathdive'){angle=u>.8?0:-Math.PI/2;tuck=u>.8?1:0;pose=u>.2&&u<.8?'deathdive':null;}

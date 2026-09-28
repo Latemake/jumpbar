@@ -2,10 +2,10 @@
 const KAARI_MAPS = [
   {id:'garden',name:'Park Practice',description:'Easy · 5 bars · find your rhythm',points:[[180,220],[380,210],[590,225],[810,195],[1040,210]],landing:240,colors:['#e7ecdf','#dbe3d2','#dee6d4','#d1ddc6','#809273']},
   {id:'coast',mode:'dive',shore:490,terrain:[[-900,70],[0,90],[180,120],[420,155],[490,155]],name:'Turquoise Bay',description:'Water jump · 2 bars · trick and splash',points:[[180,80],[420,65]],landing:1100,colors:['#e2edf0','#d1e0e4','#c8dde2','#c2d5d4','#6d919d']},
-  {id:'sunset',mode:'dive',shore:540,terrain:[[-900,180],[0,205],[180,230],[330,275],[465,290],[540,290]],name:'Golden Cliffs',description:'Water jump · 2 bars · trick and splash',points:[[180,60],[465,40]],landing:1100,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']},
+  {id:'sunset',mode:'dive',shore:540,terrain:[[-900,260],[0,430],[180,580],[330,615],[465,650],[540,650]],name:'Golden Cliffs',description:'Water jump · 2 bars · trick and splash',points:[[180,60],[465,40]],landing:1600,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']},
   {id:'city',name:'Rooftop Run',description:'Medium · 7 bars · above the skyline',points:[[180,210],[410,190],[655,215],[915,180],[1190,205],[1450,185],[1715,210]],landing:280,colors:['#aaa9db','#c4bfe5','#8298ba','#87819d','#535774']},
   {id:'harbor',mode:'dive',shore:525,terrain:[[-900,50],[0,65],[180,95],[310,70],[450,120],[525,120]],name:'Island Hopping',description:'Water jump · 2 bars · trick and splash',points:[[180,80],[450,95]],landing:1100,colors:['#a9d6de','#c8e5e5','#6c9baa','#93aeb2','#536d79']},
-  {id:'alpine',mode:'dive',shore:550,terrain:[[-900,240],[0,290],[180,340],[340,375],[480,410],[550,410]],name:'Alpine Lake',description:'Water jump · 2 bars · trick and splash',points:[[180,50],[480,35]],landing:1100,colors:['#c7e3f6','#e1edf6','#b8d3e3','#e6edf0','#8195ac']}
+  {id:'alpine',mode:'dive',shore:550,terrain:[[-900,300],[0,650],[180,890],[340,930],[480,980],[550,980]],name:'Alpine Lake',description:'Water jump · 2 bars · trick and splash',points:[[180,50],[480,35]],landing:1900,colors:['#c7e3f6','#e1edf6','#b8d3e3','#e6edf0','#8195ac']}
 ];
 const K_TAU=Math.PI*2,K_G=720,K_FLOOR=475;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -27,7 +27,7 @@ class GymnastRagdoll {
     this.joints={};this.reset(p);
   }
   pose(p,bar=null){
-    const t=p.tuck,s=Math.sin(p.angle),c=Math.cos(p.angle);
+    const t=Math.max(p.tuck,p.landingCompression||0),s=Math.sin(p.angle),c=Math.cos(p.angle);
     // Both thighs flex toward the chest in body space. The shins fold back
     // toward the hips; neither leg mirrors to the other side of the body.
     const special=!bar?p.specialPose:null;
@@ -43,6 +43,17 @@ class GymnastRagdoll {
     const side=bar?(dy<=0?1:-1):-1;
     const elbow=[dx/2-dy/d*bend*side,-21+dy/2+dx/d*bend*side];
     const local={hip:[0,4],chest:[0,-21],head:[0,-38],elbowL:elbow,elbowR:[...elbow],handL:hand,handR:[...hand],kneeL:knee,kneeR:[...knee],footL:foot,footR:[...foot]};
+    if(special==='grab'){
+      local.kneeR=[24,-3];local.footR=[4,12];local.handR=[4,12];
+      const dx=4,dy=33,d=Math.hypot(dx,dy),bend=Math.sqrt(23*23-d*d/4);
+      local.elbowR=[dx/2+dy/d*bend,-21+dy/2-dx/d*bend];
+      local.handL=[-30,-30];local.elbowL=[-18,-37];
+    }
+    if(p.onGround){
+      // Reach forward to counter the hip moving back during impact compression.
+      local.handL=[-26,-24];local.elbowL=[-18,-35];
+      local.handR=[30,-23];local.elbowR=[20,-33];
+    }
     if(special==='star'){
       local.handL=[-39,-40];local.elbowL=[-20,-32];local.elbowR=[20,-32];
       local.kneeL=[-15,24];local.kneeR=[15,24];local.footL=[-30,44];local.footR=[30,44];
@@ -85,7 +96,7 @@ class GymnastRagdoll {
         for(const id of ['elbowL','elbowR','handL','handR']){const q=this.joints[id];q.x+=(target[id].x-q.x)*.22;q.y+=(target[id].y-q.y)*.22;}
         // The arms share one bend in the movement plane; depth separates them
         // visually. Do not constrain the free ragdoll after a fall.
-        if(p.specialPose!=='star'||bar)for(const name of ['elbow','hand']){const a=this.joints[name+'L'],b=this.joints[name+'R'];a.x=b.x=(a.x+b.x)/2;a.y=b.y=(a.y+b.y)/2;}
+        if((!['star','grab'].includes(p.specialPose)&&!p.onGround)||bar)for(const name of ['elbow','hand']){const a=this.joints[name+'L'],b=this.joints[name+'R'];a.x=b.x=(a.x+b.x)/2;a.y=b.y=(a.y+b.y)/2;}
         if(bar)for(const id of ['handL','handR']){this.joints[id].x=bar.x;this.joints[id].y=bar.y;}
       }
       for(const q of Object.values(this.joints))if(q.y>floor-4){q.y=floor-4;q.px=q.x-(q.x-q.px)*.7;q.py=q.y;}
@@ -103,11 +114,18 @@ class KaariPhysics {
     const b=this.bars[0],angle=-.85;
     this.player={x:b.x+Math.sin(angle)*76,y:b.y+Math.cos(angle)*76,vx:0,vy:0,angle,omega:0,radius:76,tuck:0,bar:0,cooldown:0,momentum:0,twist:0,twistSpeed:0};
     this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.chain=0;this.maxChain=0;this.flightPoints=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
-    this.grounded=false;this.groundCharge=0;this.groundHeld=false;this.specialTime=0;this.specialAwarded=false;this.airTime=0;this.layoutRotation=0;this.layoutAwarded=false;this.rewardClaimed=false;this.deathDiveUnlocked=false;this.diveTime=0;this.diveAwarded=false;this.sinceDive=99;this.bombActive=false;
+    this.grabTime=0;this.grabAwarded=false;this.landingVelocity=0;this.grounded=false;this.groundCharge=0;this.groundHeld=false;this.specialTime=0;this.specialAwarded=false;this.airTime=0;this.layoutRotation=0;this.layoutAwarded=false;this.rewardClaimed=false;this.deathDiveUnlocked=false;this.diveTime=0;this.diveAwarded=false;this.sinceDive=99;this.bombActive=false;
   }
   beginFlight(){
+    this.grabTime=0;this.grabAwarded=false;this.player.onGround=false;this.player.landingCompression=0;
     this.flightPoints=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;
     this.specialTime=0;this.specialAwarded=false;this.airTime=0;this.layoutRotation=0;this.layoutAwarded=false;this.player.specialPose=null;this.diveTime=0;this.diveAwarded=false;this.sinceDive=99;this.bombActive=false;this.player.twist=0;this.player.twistSpeed=0;
+  }
+  startLanding(){
+    const p=this.player;this.grounded=true;this.groundCharge=0;this.groundHeld=false;
+    this.landingVelocity=clamp(Math.abs(p.vy)/180,1,6);p.landingCompression=.04;p.onGround=true;
+    p.specialPose=null;p.twist=0;p.twistSpeed=0;p.momentum=0;p.tuck=0;p.vx=clamp(p.vx*.3,-95,95);
+    p.angle=clamp(Math.atan2(Math.sin(p.angle),Math.cos(p.angle)),-.5,.5);p.omega=clamp(p.omega,-2,2);p.vy=0;
   }
   stepGround(dt,input){
     const p=this.player,surface=this.groundY(p.x);
@@ -118,11 +136,14 @@ class KaariPhysics {
       if(quick){
         this.grounded=false;this.beginFlight();p.angle=0;p.momentum=0;p.vy=-530*this.character.bounce;p.cooldown=.12;
         const target=this.bars.find((_,i)=>!this.visited.has(i))||{x:this.mat.x+80,y:surface-65};
-        p.vx=clamp((target.x-p.x)/.9,-240,240);p.y-=5;
+        p.vx=clamp((target.x-p.x)/.9,-240,240);p.y=surface-10-this.ragdoll.pose({...p,y:0}).footR.y;this.ragdoll.reset(p);
         this.events.push({type:'bounce',label:'BOUNCE!',x:p.x,y:p.y});return;
       }
     }
-    p.angle=0;p.omega=0;p.vx=0;p.vy=0;p.specialPose=null;
+    this.landingVelocity+=(-70*(p.landingCompression||0)-12*this.landingVelocity)*dt;
+    p.landingCompression=clamp((p.landingCompression||0)+this.landingVelocity*dt,0,.7);
+    p.omega+=(-42*p.angle-10*p.omega)*dt;p.angle+=p.omega*dt;
+    p.x+=p.vx*dt;p.vx*=Math.exp(-9*dt);p.vy=0;p.specialPose=null;p.onGround=true;
     const footY=this.ragdoll.pose({...p,y:0}).footR.y;p.y=surface-5-footY;
     this.ragdoll.step(dt,p,null,surface);
   }
@@ -157,7 +178,7 @@ class KaariPhysics {
       const strength=clamp((.45+impactSpeed/700)*Math.sqrt(mass/75)*(bombEntry?1.25:1),.45,2.8);
       this.splash={x:p.x,clean,duration:2.6,impactSpeed,mass,strength,kind:bombEntry?'bomb':diveEntry?'deathdive':'normal',points:success?500+bonus:0};if(success)this.score+=500+bonus;
       p.vy=Math.max(90,p.vy*.65);p.vx*=.5;
-    }else if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.twist=0;this.player.twistSpeed=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else{
+    }else if(success){this.score+=500;this.startLanding();}else{
       const p=this.player;
       const kind=p.tuck>.55||Math.abs(p.omega)>7?'roll':Math.cos(p.angle)<-.45?'head':Math.sin(p.angle)<-.55?'belly':Math.sin(p.angle)>.55?'back':'sit';
       const captions={head:['HEAD FIRST!','Brain temporarily disconnected.','BONK!'],belly:['BELLY FLOP!','Full marks for surface area.','SPLAT!'],back:['BACK BOUNCE!','Returned to sender.','BOING!'],roll:['SPIN CYCLE!','One more spin, please.','WHIRR!'],sit:['BUTT FIRST!','Found a seat.','THUMP!']};
@@ -175,6 +196,7 @@ class KaariPhysics {
         p.x+=p.vx*dt;p.y+=p.vy*dt;p.angle+=p.momentum*.15*dt;p.momentum*=Math.exp(-3*dt);
         p.tuck*=Math.exp(-1.2*dt);p.specialPose=null;this.ragdoll.reset(p);return;
       }
+      if(this.success&&this.grounded){this.stepGround(dt,{});return;}
       if(this.crash&&!this.crash.kicked&&this.elapsedAfterEnd>.32){this.ragdoll.kick(this.crash.kind,this.crash.direction);this.crash.kicked=true;}
       this.ragdoll.step(dt,p,null,this.groundY(p.x));
       if(this.crash){p.x=this.ragdoll.joints.hip.x;p.y=this.ragdoll.joints.hip.y;p.vx=0;p.vy=0;}
@@ -183,9 +205,10 @@ class KaariPhysics {
     if(!this.active){if(input.grip||input.tuck)this.active=true;else return;}
     const airborne=p.bar<0&&!this.grounded;
     const bomb=airborne&&this.characterId==='bruno'&&!!input.bomb;
+    const grab=airborne&&!!input.grab&&!input.bomb&&!input.dive;
     const dive=airborne&&this.water&&this.deathDiveUnlocked&&!!input.dive&&!bomb;
     this.bombActive=bomb;this.sinceDive=dive?0:this.sinceDive+dt;
-    input={...input,tuck:bomb||(!dive&&!!input.tuck),special:!dive&&(bomb||input.special)};
+    input={...input,tuck:bomb||(!dive&&!!input.tuck),special:!dive&&!grab&&(bomb||input.special)};
     const oldRadius=p.radius;p.tuck+=(Number(!!input.tuck)-p.tuck)*Math.min(1,dt*10);p.radius=76-26*p.tuck;p.cooldown-=dt;
     if(this.grounded){this.stepGround(dt,input);return;}
     if(p.bar>=0){
@@ -223,7 +246,7 @@ class KaariPhysics {
       if(this.turns>0&&this.twistTurns>0&&!this.comboAwarded){this.comboAwarded=true;this.flightPoints+=150;this.score+=150;this.events.push({type:'combo',label:`${this.airRotation>0?'BACKFLIP':'FRONTFLIP'} ${this.twistTurns*360}°`,x:p.x,y:p.y-25});}
       this.airTime+=dt;
       const ability=this.character,canPose=input.special&&(ability.special==='cannon'?p.tuck>.65:ability.special==='corkscrew'||p.tuck<.35);
-      p.specialPose=dive?'deathdive':canPose?ability.special:null;
+      p.specialPose=grab?'grab':dive?'deathdive':canPose?ability.special:null;
       const clearOfGround=p.y<(overGround?groundSurface:K_FLOOR)-95;
       this.specialTime=canPose&&clearOfGround?this.specialTime+dt:0;
       const ready=ability.special==='corkscrew'?this.turns>0&&this.twistTurns>0&&!!twistInput:this.specialTime>=.4;
@@ -231,6 +254,8 @@ class KaariPhysics {
         this.specialAwarded=true;this.score+=ability.specialPoints;this.flightPoints+=ability.specialPoints;
         this.events.push({type:'special',label:ability.ability.toUpperCase(),points:ability.specialPoints,x:p.x,y:p.y});
       }
+      this.grabTime=grab&&clearOfGround?this.grabTime+dt:0;
+      if(this.grabTime>=.35&&!this.grabAwarded){this.grabAwarded=true;this.score+=150;this.flightPoints+=150;this.events.push({type:'special',label:'GRAB',points:150,x:p.x,y:p.y});}
       this.diveTime=dive&&clearOfGround?this.diveTime+dt:0;
       if(this.diveTime>=.35&&!this.diveAwarded){this.diveAwarded=true;this.score+=250;this.flightPoints+=250;this.events.push({type:'special',label:'DEATH DIVE',points:250,x:p.x,y:p.y});}
       if(input.grip&&p.cooldown<=0){
@@ -245,7 +270,7 @@ class KaariPhysics {
         }
       }
     }
-    const surface=this.water&&p.x<this.mat.x?this.cliffY:K_FLOOR;
+    const surface=this.groundY(p.x);
     this.ragdoll.step(dt,p,p.bar>=0?this.bars[p.bar]:null,surface);
     if(p.bar<0){
       const joints=this.ragdoll.joints,touching=Object.entries(joints).filter(([,q])=>q.y>=surface-4.1);
@@ -257,11 +282,10 @@ class KaariPhysics {
         const feetFirst=touching.every(([id])=>id.startsWith('foot')||id.startsWith('knee'))&&Math.cos(p.angle)>.25&&Math.abs(p.omega)<12&&p.tuck<.8;
         if(feetFirst&&onMat&&this.visited.size===this.bars.length)this.finish(true);
         else if(feetFirst){
-          this.settleCombo(false);this.grounded=true;this.groundCharge=0;this.groundHeld=false;p.specialPose=null;p.twist=0;p.twistSpeed=0;p.angle=0;p.tuck=0;p.y=surface-56;
-          this.ragdoll.reset(p);this.events.push({type:'ground',label:'TUCK → RELEASE',x:p.x,y:p.y});
+          this.settleCombo(false);this.startLanding();this.events.push({type:'ground',label:'TUCK → RELEASE',x:p.x,y:p.y});
         }else this.finish(false);
       }
-      if(p.y>K_FLOOR+80||p.y<-1200||p.x<-180||p.x>this.mat.x+this.mat.w+200)this.finish(false);
+      if(p.y>K_FLOOR+80||p.y<-2200||p.x<-180||p.x>this.mat.x+this.mat.w+200)this.finish(false);
     }
   }
 }
