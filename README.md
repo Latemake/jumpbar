@@ -81,3 +81,15 @@ Päävalikon keskellä on suuri, seisova 3D-hahmo. Vaihda hahmoa sen vasemmalla 
 Kaikilla hahmoilla on sama fysiikka, temput ja pisteytys.
 
 
+## Ratakaruselli ja ympäristöt
+
+Hahmon alapuolella oleva ratakaruselli näyttää valitun radan keskellä sekä kaksi pienempää haamukorttia kummallakin puolella. Vaihda pyyhkäisemällä, hiirellä vetämällä, reunan nuolilla tai karusellin ollessa kohdistettuna näppäimistön nuolilla.
+
+- **Puistotreeni:** suihkulähde, huvimaja, puut ja istutukset.
+- **Rantakaari:** majakka, purjeveneet, aurinkovarjot ja laituri.
+- **Aavikkokaari:** kivikaaret ja kaktukset lämpimässä auringonlaskussa.
+- **Kattokaupunki:** pilvenpiirtäjät, kattolaitteet ja vesisäiliö.
+- **Konttisatama:** konttipinot, suuret nosturit ja rahtilaiva.
+- **Lumihuiput:** lumiset vuoret, kuuset, mökki ja köysirata.
+
+Kaikilla kuudella radalla on omat tankosijoittelut, vaikeustaso ja ennätys. Rakennukset ovat maisemaa; varsinainen rata ja törmäysfysiikka pysyvät kaksiulotteisina.

@@ -20,11 +20,12 @@
       <button id="help-toggle" class="text-button" aria-expanded="false">Miten pelataan? <span>＋</span></button>
       <div id="help" hidden><div class="keyboard-help"><p><kbd>SPACE</kbd> Pidä ote · vapauta hypätäksesi</p><p><kbd>↓ / S</kbd> Pidä: kerään · vapauta: suoraksi</p><p><kbd>← / →</kbd> Ilmassa: vartalon kierto (myös A / D)</p><p><kbd>ESC</kbd> Tauko <kbd>R</kbd> Uusi yritys</p></div><div class="touch-help"><p><b>Oikea peukalo: OTE</b><br>Pidä pohjassa tarttuaksesi. Vapauta hypätäksesi.</p><p><b>Vasen peukalo: KERÄÄN</b><br>Pidä kerätäksesi vartalon. Vapauta suoristuaksesi.</p><p><b>↶ / ↷</b> Pidä kiertääksesi ilmassa. Yhdistä volttiin!</p><p>Voit painaa nappeja yhtä aikaa. Myös vaaka-asento toimii.</p></div><p>Kerään alhaalla, suoraksi ääriasennossa.</p></div>
     </div>
-    <div class="map-picker"><div class="map-heading"><span>VALITSE LEIKKIKENTTÄSI</span><span id="menu-best">ENNÄTYS 0</span></div><div class="map-list">
-      <button class="map-card garden" data-map="0" aria-pressed="true"><span class="map-art"><i></i><b>01</b><span class="selected">✓</span></span><span class="map-info"><strong>Puistotreeni</strong><small>HELPPO · 5 TANKOA</small></span></button>
-      <button class="map-card coast" data-map="1" aria-pressed="false"><span class="map-art"><i></i><b>02</b><span class="selected">✓</span></span><span class="map-info"><strong>Rantakaari</strong><small>KESKITASO · 7 TANKOA</small></span></button>
-      <button class="map-card sunset" data-map="2" aria-pressed="false"><span class="map-art"><i></i><b>03</b><span class="selected">✓</span></span><span class="map-info"><strong>Auringonlasku</strong><small>HAASTAVA · 8 TANKOA</small></span></button>
-    </div></div>
+    <div class="map-picker"><div class="map-heading"><span>VALITSE RATA <span id="map-counter">01 / 06</span></span><span id="menu-best">ENNÄTYS 0</span></div>
+      <div class="map-carousel" role="region" aria-label="Ratavalinta" aria-roledescription="karuselli">
+        <div id="map-track" tabindex="0" aria-label="Vaihda rataa pyyhkäisemällä tai nuolinäppäimillä"></div>
+        <button id="map-prev" class="map-arrow" aria-label="Edellinen rata">‹</button><button id="map-next" class="map-arrow" aria-label="Seuraava rata">›</button>
+      </div><div id="map-selected-name" class="sr-only" aria-live="polite"></div>
+    </div>
 
   </section>
   <div id="hud" hidden><div class="hud-score"><strong id="score">0</strong><span id="progress">1 / 5</span></div><div class="hud-actions"><button id="restart" class="icon" aria-label="Uusi yritys" title="Uusi yritys (R)">↻</button><button id="pause-button" class="icon" aria-label="Tauko" title="Tauko (Esc)">Ⅱ</button></div><div id="start-hint"><kbd>SPACE</kbd> ote <span>·</span> <kbd>↓</kbd> kerään</div></div>
@@ -34,6 +35,7 @@
 </main>
 <script src="physics.js"></script><script src="vendor/three.min.js"></script><script src="renderer.js"></script><script src="game.js"></script>
 </body></html>
+
 
 
 

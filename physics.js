@@ -2,7 +2,10 @@
 const KAARI_MAPS = [
   {id:'garden',name:'Puistotreeni',description:'Helppo · 5 tankoa · opettele keräasennon rytmi',points:[[180,220],[325,220],[480,205],[635,220],[795,210]],landing:240,colors:['#e7ecdf','#dbe3d2','#dee6d4','#d1ddc6','#809273']},
   {id:'coast',name:'Rantakaari',description:'Keskitaso · 7 tankoa · korkeuseroja ja pidempiä lentoja',points:[[180,225],[355,200],[540,225],[725,180],[910,210],[1105,190],[1300,215]],landing:260,colors:['#e2edf0','#d1e0e4','#c8dde2','#c2d5d4','#6d919d']},
-  {id:'sunset',name:'Auringonlasku',description:'Haastava · 8 tankoa · pitkät välit ja tarkat irrotukset',points:[[180,220],[380,195],[600,230],[810,180],[1040,215],[1250,175],[1480,215],[1700,195]],landing:280,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']}
+  {id:'sunset',name:'Aavikkokaari',description:'Haastava · 8 tankoa · kivikaaret ja kaktukset',points:[[180,220],[380,195],[600,230],[810,180],[1040,215],[1250,175],[1480,215],[1700,195]],landing:280,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']},
+  {id:'city',name:'Kattokaupunki',description:'Keskitaso · 7 tankoa · pilvenpiirtäjien katolla',points:[[180,210],[350,190],[530,215],[720,180],[910,205],[1090,185],[1280,210]],landing:280,colors:['#aaa9db','#c4bfe5','#8298ba','#87819d','#535774']},
+  {id:'harbor',name:'Konttisatama',description:'Haastava · 8 tankoa · nosturit ja rahtilaivat',points:[[180,220],[375,205],[580,230],[790,195],[1000,220],[1220,190],[1430,210],[1650,190]],landing:300,colors:['#a9d6de','#c8e5e5','#6c9baa','#93aeb2','#536d79']},
+  {id:'alpine',name:'Lumihuiput',description:'Helppo · 6 tankoa · vuoret ja köysirata',points:[[180,225],[330,210],[490,225],[650,195],[815,210],[980,195]],landing:300,colors:['#c7e3f6','#e1edf6','#b8d3e3','#e6edf0','#8195ac']}
 ];
 const K_TAU=Math.PI*2,K_G=720,K_FLOOR=475;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
