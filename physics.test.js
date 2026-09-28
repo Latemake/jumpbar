@@ -271,7 +271,7 @@ test('death dive needs unlock, awards once and rewards a timely fold',()=>{
 
 test('water impact scales with speed and mass and preserves visible underwater motion',()=>{
  function splash(id,speed){const g=new KaariPhysics(1);g.characterId=id;g.active=true;g.visited=new Set([0,1]);Object.assign(g.player,{bar:-1,x:g.mat.x+250,y:K_FLOOR-40,vy:speed,vx:60,angle:0});g.finish(true);return g;}
- const low=splash('rookie',250),high=splash('rookie',950),heavy=splash('bruno',950),light=splash('neon',950);
+ const low=splash('rookie',250),high=splash('rookie',950),heavy=splash('bruno',950),light=splash('guard',950);
  assert.ok(high.splash.strength>low.splash.strength);assert.ok(heavy.splash.strength>high.splash.strength);assert.ok(light.splash.strength<high.splash.strength);
  for(const g of [low,high,heavy,light]){const y=g.player.y,score=g.score;for(let i=0;i<240;i++)g.step(dt,{bomb:true,twist:1});assert.ok(g.player.y>y);assert.ok(g.player.y>K_FLOOR);assert.ok(g.player.y<K_FLOOR+250);assert.equal(g.score,score);for(const j of Object.values(g.ragdoll.joints))assert.ok(Number.isFinite(j.x+j.y));g.reset();assert.equal(g.splash,null);}
 });

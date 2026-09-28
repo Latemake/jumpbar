@@ -17,7 +17,9 @@ function terrainHeight(map,x){
 const JUMPBAR_CHARACTERS=[
   {id:'rookie',name:'Boxer Barry',style:'Big dreams. Questionable underwear.',price:0,mass:75,body:1,bare:true,skin:'#dfa77f',shirt:'#dfa77f',pants:'#f4eee3',shoe:'#dfa77f',hair:'#6a422b',badge:'',ability:'Candle',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'candle',specialPoints:100,spin:1,bounce:1},
   {id:'bruno',name:'Big Bruno',style:'Big belly. Bigger bounce.',price:80,mass:120,body:1.65,bare:true,skin:'#b97953',shirt:'#b97953',pants:'#e96b57',shoe:'#f6d569',hair:'#4b3027',badge:'',ability:'Cannonball',instruction:'Hold BOMB / B to curl up. Stay tucked for the splash.',special:'cannon',specialPoints:150,spin:.9,bounce:1.12},
-  {id:'neon',name:'Neon',style:'Light on her feet. Quick in the air.',price:220,mass:60,body:.82,skin:'#88563e',shirt:'#26d6bf',pants:'#432969',shoe:'#f0ff8f',hair:'#251b35',badge:'N',ability:'Pike',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'pike',specialPoints:175,spin:1.15,bounce:1},
+  {id:'guard',name:'Whistle Willie',style:'All moustache. Absolutely no swimming licence.',price:160,mass:62,body:.8,bare:true,skin:'#d99b72',shirt:'#d99b72',pants:'#ed443e',shoe:'#fff3dc',hair:'#623723',ability:'Salute',instruction:'Hold TRICK without tucking for 0.4 s. Salute the beach.',special:'salute',specialPoints:150,spin:1.12,bounce:1},
+  {id:'sauna',name:'Sauna Sausage',style:'One more round. Still wearing the bucket.',price:240,mass:105,body:1.5,bare:true,skin:'#e5a58d',shirt:'#e5a58d',pants:'#f4e9ca',shoe:'#e5a58d',hair:'#ded6c5',ability:'Sauna star',instruction:'Hold TRICK without tucking for 0.4 s. Spread out and cool off.',special:'star',specialPoints:175,spin:.95,bounce:1.15},
+  {id:'diver',name:'Flipper Phil',style:'Feet first. The rest arrives eventually.',price:320,mass:70,body:.85,skin:'#bd895e',shirt:'#f4c635',pants:'#263b55',shoe:'#ffb52e',hair:'#302c28',ability:'Flipper fold',instruction:'Hold TRICK without tucking for 0.4 s. Show off those ridiculous flippers.',special:'pike',specialPoints:200,spin:1.08,bounce:1.05},
 ];
 
 // Distance-constrained Verlet skeleton. Pose muscles switch off after a fall.
@@ -43,6 +45,7 @@ class GymnastRagdoll {
     const side=bar?(dy<=0?1:-1):-1;
     const elbow=[dx/2-dy/d*bend*side,-21+dy/2+dx/d*bend*side];
     const local={hip:[0,4],chest:[0,-21],head:[0,-38],elbowL:elbow,elbowR:[...elbow],handL:hand,handR:[...hand],kneeL:knee,kneeR:[...knee],footL:foot,footR:[...foot]};
+    if(special==='salute'){local.handR=[7,-42];local.elbowR=[25,-24];local.handL=[-8,18];local.elbowL=[-18,-4];}
     if(special==='grab'){
       local.kneeR=[24,-3];local.footR=[4,12];local.handR=[4,12];
       const dx=4,dy=33,d=Math.hypot(dx,dy),bend=Math.sqrt(23*23-d*d/4);
@@ -96,7 +99,7 @@ class GymnastRagdoll {
         for(const id of ['elbowL','elbowR','handL','handR']){const q=this.joints[id];q.x+=(target[id].x-q.x)*.22;q.y+=(target[id].y-q.y)*.22;}
         // The arms share one bend in the movement plane; depth separates them
         // visually. Do not constrain the free ragdoll after a fall.
-        if((!['star','grab'].includes(p.specialPose)&&!p.onGround)||bar)for(const name of ['elbow','hand']){const a=this.joints[name+'L'],b=this.joints[name+'R'];a.x=b.x=(a.x+b.x)/2;a.y=b.y=(a.y+b.y)/2;}
+        if((!['star','grab','salute'].includes(p.specialPose)&&!p.onGround)||bar)for(const name of ['elbow','hand']){const a=this.joints[name+'L'],b=this.joints[name+'R'];a.x=b.x=(a.x+b.x)/2;a.y=b.y=(a.y+b.y)/2;}
         if(bar)for(const id of ['handL','handR']){this.joints[id].x=bar.x;this.joints[id].y=bar.y;}
       }
       for(const q of Object.values(this.joints))if(q.y>floor-4){q.y=floor-4;q.px=q.x-(q.x-q.px)*.7;q.py=q.y;}

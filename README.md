@@ -117,7 +117,7 @@ finishes add 20, and first chapter clears add 60-200. Each run can be claimed
 once and first-clear bonuses cannot repeat. Old sandbox records are retained
 under their old storage keys but do not unlock campaign chapters.
 
-Boxer Barry starts in patterned underwear. The shop adds Big Bruno and Neon.
+Boxer Barry starts in patterned underwear. The shop adds Big Bruno, Whistle Willie, Sauna Sausage and Flipper Phil.
 Hold E / TRICK for the character's signature pose. Bruno also has a dedicated
 B / BOMB button that automatically tucks. Clear chapter 2 to unlock F / DIVE:
 hold for 0.35 seconds, then release and tuck within 0.8 seconds of water entry
@@ -140,8 +140,8 @@ Validation: `node --test physics.test.js campaign.test.js`.
 ## Character and language refresh
 
 The interface, chapter dialogue, course names, controls, help, trick feedback
-and results are now in English. The current roster is Boxer Barry, Big Bruno
-and Neon. Shadow and Astro have been retired: loading a save refunds their
+and results are now in English. The current roster is Boxer Barry, Big Bruno, Whistle Willie, Sauna Sausage
+and Flipper Phil. Shadow and Astro have been retired: loading a save refunds their
 420 / 700 coin purchase prices, removes their ownership, and switches a retired
 equipped character to Barry. Subsequent saves do not repeat the refund.
 
@@ -151,3 +151,5 @@ There are no separate elbow/knee balls or overlapping belly pieces. Physics
 and existing chapter progress are preserved.
 
 Grab: hold Up / GRAB for 0.35 s to hold one foot for 150 points once per flight. All characters can use it; the first run after this update includes a tutorial. Feet-first landings now absorb impact with a damped knee bend and arm balance, including successful finishes. Golden Cliffs and Alpine Lake have much taller drops; the mobile camera widens to include the water and cliff edge.
+
+Neon is retired with a one-time 220-coin refund. New shop characters: Whistle Willie (160, Salute), Sauna Sausage (240, Sauna star), Flipper Phil (320, Flipper fold). Each purchase unlocks a tutorial and Trick Book entry. Their bodies, headgear and accessories are distinct; mass also affects splash size.

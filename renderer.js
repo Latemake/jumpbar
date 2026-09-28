@@ -59,9 +59,9 @@ class KaariRenderer {
     const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));sprite.scale.set(size*4,size,1);return sprite;
   }
   makePerson(){
-    const c=JUMPBAR_CHARACTERS.find(c=>c.id===this.characterId)||JUMPBAR_CHARACTERS[0],big=c.id==='bruno';
+    const c=JUMPBAR_CHARACTERS.find(c=>c.id===this.characterId)||JUMPBAR_CHARACTERS[0],big=['bruno','sauna'].includes(c.id);
     const skin=this.material(c.skin,.82),cloth=this.material(c.pants,.94),top=this.material(c.bare?c.skin:c.shirt,.85),hair=this.material(c.hair,.95),white=this.material('#fff8e9'),ink=this.material('#302628');
-    this.bodyScale=c.body;this.bodyDepth=big?14:c.id==='neon'?7:8;this.bodyWidth=big?15:c.id==='neon'?8:10;
+    this.bodyScale=c.body;this.bodyDepth=big?14:c.id==='guard'?5.5:8;this.bodyWidth=big?15:c.id==='guard'?7:10;
     // One smoothly sampled surface from waist to neck. The belly is part of
     // this mesh, never a second overlapping sphere.
     const profile=new THREE.CatmullRomCurve3((big?[[.7,-1],[1,-.65],[1.05,-.15],[.94,.4],[.8,.75],[.32,1]]:[[.72,-1],[.8,-.5],[.9,.2],[1,.62],[.82,.83],[.33,1]]).map(([r,y])=>new THREE.Vector3(r,y,0)));
@@ -72,7 +72,7 @@ class KaariRenderer {
     const shortsTex=new THREE.CanvasTexture(shortsCanvas);shortsTex.colorSpace=THREE.SRGBColorSpace;
     const shortsMat=this.material('#ffffff',.94);shortsMat.map=shortsTex;
     this.hips=this.mesh(new THREE.LatheGeometry([new THREE.Vector2(0,-1),new THREE.Vector2(.72,-1),new THREE.Vector2(.98,-.5),new THREE.Vector2(1,.5),new THREE.Vector2(.94,1),new THREE.Vector2(0,1)],32),shortsMat,this.person);
-    this.hips.scale.set(this.bodyDepth*.77,7,this.bodyWidth*.83);
+    this.hips.scale.set(this.bodyDepth*.77,c.id==='sauna'?11:7,this.bodyWidth*.83);
     this.limbs=[];this.jointMeshes={};
     for(const side of ['L','R']){
       const sign=side==='L'?-1:1;
@@ -86,14 +86,14 @@ class KaariRenderer {
       const z=sign*6.5;
       this.jointMeshes['hand'+side]={mesh:this.ball(0,0,0,2.7,skin,this.person,1,1.15,.9),z};
       this.jointMeshes['foot'+side]={mesh:this.ball(0,0,0,1,c.bare?skin:this.material(c.shoe),this.person),z};
-      this.jointMeshes['foot'+side].mesh.scale.set(6.3,3.2,3.8);
+      this.jointMeshes['foot'+side].mesh.scale.set(c.id==='diver'?17:6.3,c.id==='diver'?2.2:3.2,c.id==='diver'?6:3.8);
     }
     this.neck=this.mesh(this.cylinder,skin,this.person);
     this.headGroup=new THREE.Group();this.person.add(this.headGroup);
     this.ball(0,0,0,10,skin,this.headGroup,big?1.08:.92,1.1,.92);
     for(const x of [-8.8,8.8])this.ball(x,0,0,1.7,skin,this.headGroup,.75,1.3,1);
     const cap=this.mesh(new THREE.SphereGeometry(1,28,16,0,Math.PI*2,0,big?1.1:1.5),hair,this.headGroup);cap.position.set(0,2,-.4);cap.scale.set(big?10:9.5,10,9.6);
-    if(c.id==='neon')this.ball(0,7,-10,5.2,hair,this.headGroup,.8,1.7,.8);
+    
     if(c.id==='rookie'){const quiff=this.ball(0,9,3,5,hair,this.headGroup,1.5,.55,.8);quiff.rotation.z=-.2;}
     for(const x of [-3.5,3.5]){
       this.ball(x,1.6,8,1.65,white,this.headGroup,1,1.2,.35);
@@ -103,6 +103,27 @@ class KaariRenderer {
     this.ball(0,-.7,9,1.9,skin,this.headGroup,.85,.85,1.25);
     this.rod([-2,-4.4,8],[2,-4.4,8],.4,ink,this.headGroup);
     if(big)for(const x of [-2.5,2.5]){const mustache=this.ball(x,-2.8,9.3,2,hair,this.headGroup,1.6,.5,.5);mustache.rotation.z=x>0?.15:-.15;}
+    if(c.id==='guard'){
+      this.headGroup.scale.set(.87,1.18,.9);
+      const red=this.material('#ed443e'),gold=this.material('#ffdc58');
+      this.ball(0,9,0,10,red,this.headGroup,1,.35,1);
+      this.ball(0,8,8,7,red,this.headGroup,1.3,.15,.9);
+      for(const x of [-4,4]){const m=this.ball(x,-3,10,3,hair,this.headGroup,2,.45,.65);m.rotation.z=x>0?.25:-.25;}
+      this.rod([-5,-8,7],[0,-14,9],.4,gold,this.headGroup);this.rod([5,-8,7],[0,-14,9],.4,gold,this.headGroup);this.ball(0,-14,9,2,gold,this.headGroup,1,.75,1.6);
+    }
+    if(c.id==='sauna'){
+      cap.visible=false;this.headGroup.scale.set(1.2,.94,1.1);
+      const wood=this.material('#98704a'),band=this.material('#4b5c64');
+      const bucket=this.mesh(new THREE.CylinderGeometry(10,12,13,12),wood,this.headGroup);bucket.position.set(1,12,-1);bucket.rotation.z=.18;
+      for(const y of [7,16]){const ring=this.mesh(new THREE.TorusGeometry(11,1,6,20),band,this.headGroup);ring.rotation.x=Math.PI/2;ring.position.set(1,y,-1);}
+      for(const x of [-6,6])this.ball(x,-1,8,2.5,this.material('#e77470'),this.headGroup,1,.7,.3);
+    }
+    if(c.id==='diver'){
+      cap.visible=false;const rubber=this.material('#23374c'),glass=this.material('#73e5ed',.2,.3),orange=this.material('#ffb52e');
+      this.ball(0,2,-1,10.5,rubber,this.headGroup,1,1.05,1);
+      for(const x of [-4,4]){this.ball(x,2,8.5,4.3,rubber,this.headGroup,1,1,.6);this.ball(x,2,10.3,3.3,glass,this.headGroup,1,1,.3);this.ball(x+.3,2,11.3,1,ink,this.headGroup,1,1,.25);}
+      this.rod([9,-4,5],[11,17,5],1.4,orange,this.headGroup);this.rod([11,17,5],[6,19,5],1.4,orange,this.headGroup);
+    }
     this.person.matrixAutoUpdate=false;
   }
   poseLimb(limb,j,inMenu,specialPose){

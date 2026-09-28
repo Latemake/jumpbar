@@ -54,3 +54,10 @@ test('new trick tutorials queue only when unlocked and acknowledgements persist'
  assert.deepEqual(restored.pendingTutorials().map(t=>t.id),['cannon','deathdive']);
  restored.acknowledgeTutorial('cannon');restored.acknowledgeTutorial('deathdive');assert.equal(restored.pendingTutorials().length,0);
 });
+
+test('Neon retires with a single refund and new characters unlock their own tutorials',()=>{
+ const c=new JumpbarCampaign({version:1,coins:1000,owned:['rookie','neon'],equipped:'neon',tutorialsSeen:['grab','candle','pike']});assert.equal(c.data.coins,1220);assert.equal(c.owns('neon'),false);assert.equal(c.data.equipped,'rookie');
+ const saved=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(saved.data.coins,1220);
+ for(const [id,trick] of [['guard','salute'],['sauna','star'],['diver','pike']]){assert.equal(saved.buy(id),true);assert.equal(saved.trickUnlocked(trick),true);}
+ assert.deepEqual(saved.pendingTutorials().map(t=>t.id),['salute','star','pike']);
+});
