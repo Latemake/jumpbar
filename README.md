@@ -71,7 +71,7 @@ Epäonnistunut alastulo valitsee asennon perusteella yhden viidestä koomisesta 
 Hahmon mallissa on muotoiltu urheilupaita, J-tunnus, hihat, kapenevat raajat, tarkemmat kasvot ja hiukset, otsapanta sekä raidalliset kengät.
 ## Hahmot
 
-Päävalikon hahmovalinta vaihtaa hahmon heti 3D-esikatselussa. Valinta tallentuu selaimeen ja säilyy radan vaihdossa sekä uusissa yrityksissä.
+Päävalikon keskellä on suuri, seisova 3D-hahmo. Vaihda hahmoa sen vasemmalla ja oikealla puolella olevista nuolista tai näppäimistön nuolinäppäimillä. Valinta päivittyy heti esikatseluun. Valinta tallentuu selaimeen ja säilyy radan vaihdossa sekä uusissa yrityksissä.
 
 - **Kipinä:** oranssi urheiluasu ja otsapanta.
 - **Neon:** turkoosi asu, violetit housut ja nuttura.
@@ -79,4 +79,5 @@ Päävalikon hahmovalinta vaihtaa hahmon heti 3D-esikatselussa. Valinta tallentu
 - **Varjo:** violetti ninja-asu, kasvomaski ja sidottu otsanauha.
 
 Kaikilla hahmoilla on sama fysiikka, temput ja pisteytys.
+
 

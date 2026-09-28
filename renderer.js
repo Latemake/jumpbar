@@ -28,6 +28,11 @@ class KaariRenderer {
     this.trailGeometry=new THREE.BufferGeometry();this.trailGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(90),3));
     this.trailLine=new THREE.Line(this.trailGeometry,new THREE.LineBasicMaterial({color:'#fff9d7',transparent:true,opacity:.55}));this.trailLine.frustumCulled=false;this.scene.add(this.trailLine);
     this.labels=document.getElementById('effects');this.targetGuide=document.getElementById('target-guide');this.resize();
+    this.previewCanvas=document.getElementById('character-preview');
+    this.previewRenderer=new THREE.WebGLRenderer({canvas:this.previewCanvas,alpha:true,antialias:true});
+    this.previewRenderer.setPixelRatio(Math.min(devicePixelRatio,this.mobile?1.5:2));
+    this.previewRenderer.outputColorSpace=THREE.SRGBColorSpace;this.previewRenderer.toneMapping=THREE.ACESFilmicToneMapping;this.previewRenderer.toneMappingExposure=1.15;
+    this.previewCamera=new THREE.OrthographicCamera(-75,75,70,-70,.1,1500);
   }
   material(color,roughness=.65,metalness=0){const m=new THREE.MeshStandardMaterial({color,roughness,metalness});return m;}
   makeCrashEffects(){
@@ -191,13 +196,20 @@ class KaariRenderer {
   }
   resize(){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.renderer.setSize(r.width,r.height,false);const half=240*r.width/r.height;Object.assign(this.camera,{left:-half,right:half,top:240,bottom:-240});this.camera.updateProjectionMatrix();}
   draw(game,offset,trail,particles,focusY=160,viewHeight=480){
+    const inMenu=document.body.dataset.screen==='menu',time=performance.now()/1000;
     if(this.mapIndex!==game.mapIndex)this.buildMap(game);
     const halfHeight=viewHeight/2,halfWidth=halfHeight*this.width/this.height;
     Object.assign(this.camera,{left:-halfWidth,right:halfWidth,top:halfHeight,bottom:-halfHeight});this.camera.updateProjectionMatrix();
     const cx=offset+halfWidth;
     this.camera.position.set(cx+210,focusY+265,1100);this.camera.lookAt(cx,focusY,0);
     this.sun.position.set(cx-270,720,360);this.sun.target.position.set(cx,0,0);
-    const j=game.ragdoll.joints,point=(id,z=0)=>[j[id].x,K_FLOOR-j[id].y,z];
+    let j=game.ragdoll.joints;
+    if(inMenu){
+      const bounce=Math.sin(time*2)*.6;
+      const pose={hip:[0,54],chest:[0,79],head:[0,96],elbowL:[4,61],elbowR:[6,61],handL:[7,40],handR:[8,40],kneeL:[-3,29],kneeR:[5,29],footL:[-5,5],footR:[7,5]};
+      j=Object.fromEntries(Object.entries(pose).map(([id,[x,y]])=>[id,{x,y:K_FLOOR-y-bounce}]));
+    }
+    const point=(id,z=0)=>[j[id].x,K_FLOOR-j[id].y,z];
     for(const limb of this.limbs)this.placeRod(limb.mesh,point(limb.a,limb.z),point(limb.b,limb.z),limb.rad);
     for(const sleeve of this.sleeves){const start=point('chest',sleeve.z),end=point('elbow'+sleeve.side,sleeve.z);this.placeRod(sleeve.mesh,start,start.map((v,i)=>v+(end[i]-v)*.38),5.8);}
     for(const [id,{mesh,z}] of Object.entries(this.jointMeshes))mesh.position.set(...point(id,z));
@@ -210,12 +222,23 @@ class KaariRenderer {
     for(const side of ['L','R']){const f=j['foot'+side],k=j['knee'+side];this.jointMeshes['foot'+side].mesh.rotation.z=Math.atan2(f.x-k.x,f.y-k.y);}
     // Twist the entire articulated model around its own hip-to-chest axis.
     // Simulation coordinates stay in the original 2D movement plane.
-    const turn=new THREE.Quaternion().setFromAxisAngle(dir.clone().normalize(),game.player.twist||0);
+    const turn=new THREE.Quaternion().setFromAxisAngle(dir.clone().normalize(),inMenu?Math.sin(time*.7)*.12:game.player.twist||0);
     this.person.matrix.makeTranslation(hip.x,hip.y,hip.z).multiply(new THREE.Matrix4().makeRotationFromQuaternion(turn)).multiply(new THREE.Matrix4().makeTranslation(-hip.x,-hip.y,-hip.z));
     this.person.matrixWorldNeedsUpdate=true;
     this.barIndicators.forEach((m,i)=>{m.material.color.set(game.visited.has(i)?'#bcf3ac':'#9aafa6');m.material.emissive.set(game.visited.has(i)?'#3b6b2d':'#000000');});
     const positions=this.trailGeometry.attributes.position;for(let i=0;i<trail.length;i++)positions.setXYZ(i,trail[i].x,K_FLOOR-trail[i].y,-12);positions.needsUpdate=true;this.trailGeometry.setDrawRange(0,trail.length);this.trailLine.visible=trail.length>1;
     this.drawCrash(game);
+    if(inMenu){
+      const rect=this.previewCanvas.getBoundingClientRect();
+      if(this.previewWidth!==rect.width||this.previewHeight!==rect.height){this.previewWidth=rect.width;this.previewHeight=rect.height;this.previewRenderer.setSize(rect.width,rect.height,false);}
+      const half=67,aspect=rect.width/Math.max(1,rect.height);
+      Object.assign(this.previewCamera,{left:-half*aspect,right:half*aspect,top:half,bottom:-half});this.previewCamera.updateProjectionMatrix();
+      this.previewCamera.position.set(280,95,280);this.previewCamera.lookAt(0,53,0);
+      this.sun.position.set(120,280,180);this.sun.target.position.set(0,55,0);
+      const background=this.scene.background;this.scene.background=null;this.world.visible=false;this.trailLine.visible=false;this.crashEffects.visible=false;
+      this.previewRenderer.render(this.scene,this.previewCamera);
+      this.world.visible=true;this.scene.background=background;this.labels.replaceChildren();this.targetGuide.hidden=true;return;
+    }
     this.renderer.render(this.scene,this.camera);
     this.targetGuide.hidden=true;
     if(this.mobile&&document.body.dataset.screen==='play'&&!game.ended){

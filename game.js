@@ -12,18 +12,13 @@ try{const saved=localStorage.getItem('jumpbar-character');if(JUMPBAR_CHARACTERS.
 function selectCharacter(id){
   const character=JUMPBAR_CHARACTERS.find(c=>c.id===id)||JUMPBAR_CHARACTERS[0];
   selectedCharacter=character.id;graphics.setCharacter(character.id);
-  document.getElementById('character-name').textContent=character.name;
+  document.getElementById('character-name').textContent=character.name;document.getElementById('character-style').textContent=character.style;document.getElementById('character-counter').textContent=String(JUMPBAR_CHARACTERS.indexOf(character)+1).padStart(2,'0')+' / 04';
   document.querySelectorAll('[data-character]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.character===character.id)));
   try{localStorage.setItem('jumpbar-character',character.id);}catch{}
 }
-for(const character of JUMPBAR_CHARACTERS){
-  const button=document.createElement('button');button.type='button';button.dataset.character=character.id;
-  button.setAttribute('aria-label',`${character.name} — ${character.style}`);button.setAttribute('aria-pressed','false');
-  button.style.setProperty('--outfit',character.shirt);button.style.setProperty('--skin',character.skin);button.style.setProperty('--hair',character.hair);
-  const avatar=document.createElement('span');avatar.className='character-avatar';avatar.setAttribute('aria-hidden','true');avatar.innerHTML='<i></i>';
-  const name=document.createElement('span');name.textContent=character.name;button.append(avatar,name);
-  button.onclick=()=>selectCharacter(character.id);document.getElementById('character-list').appendChild(button);
-}
+function cycleCharacter(direction){const index=JUMPBAR_CHARACTERS.findIndex(c=>c.id===selectedCharacter);selectCharacter(JUMPBAR_CHARACTERS[(index+direction+JUMPBAR_CHARACTERS.length)%JUMPBAR_CHARACTERS.length].id);}
+document.getElementById('character-prev').onclick=()=>cycleCharacter(-1);
+document.getElementById('character-next').onclick=()=>cycleCharacter(1);
 selectCharacter(selectedCharacter);
 let width=1000,height=550,scale=1,camera=0,cameraY=160,cameraSpan=480,trail=[],particles=[],best=0,screen='menu',menuTime=0;
 function readBest(){try{best=Number(localStorage.getItem('kaari-best-'+game.map.id))||0;}catch{best=0;}}
@@ -101,6 +96,7 @@ function step(dt){
 function draw(){const inMenu=screen==='menu',offset=inMenu?game.player.x-width/scale*.72:camera;graphics.draw(game,offset,trail,particles,inMenu?160:cameraY,inMenu?480:cameraSpan);}
 function releaseIfNeeded(){if(screen==='play'&&!held('Space')&&game.active)game.release();}
 window.addEventListener('keydown',e=>{
+  if(screen==='menu'&&['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();cycleCharacter(e.code==='ArrowRight'?1:-1);return;}
   if(e.code==='Escape'){e.preventDefault();if(screen==='play')pause();else if(screen==='pause')resume();return;}
   if(screen!=='play')return;
   if(e.target instanceof HTMLElement&&e.target.matches('button,a,input'))return;
@@ -136,3 +132,4 @@ document.getElementById('fullscreen').onclick=()=>{if(document.fullscreenElement
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)pause();});
 document.getElementById('help-toggle').onclick=()=>{const help=document.getElementById('help');help.hidden=!help.hidden;document.getElementById('help-toggle').setAttribute('aria-expanded',String(!help.hidden));};
 let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((time-last)/1000,.05);last=time;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame);}reset();setScreen('menu');requestAnimationFrame(frame);
+
