@@ -15,9 +15,9 @@ function terrainHeight(map,x){
   return points.at(-1)[1];
 }
 const JUMPBAR_CHARACTERS=[
-  {id:'rookie',name:'Boxer Barry',style:'Big dreams. Questionable underwear.',price:0,body:1,bare:true,skin:'#dfa77f',shirt:'#dfa77f',pants:'#f4eee3',shoe:'#dfa77f',hair:'#6a422b',badge:'',ability:'Candle',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'candle',specialPoints:100,spin:1,bounce:1},
-  {id:'bruno',name:'Big Bruno',style:'Big belly. Bigger bounce.',price:80,body:1.65,bare:true,skin:'#b97953',shirt:'#b97953',pants:'#e96b57',shoe:'#f6d569',hair:'#4b3027',badge:'',ability:'Cannonball',instruction:'Hold BOMB / B to curl up. Stay tucked for the splash.',special:'cannon',specialPoints:150,spin:.9,bounce:1.12},
-  {id:'neon',name:'Neon',style:'Light on her feet. Quick in the air.',price:220,body:.82,skin:'#88563e',shirt:'#26d6bf',pants:'#432969',shoe:'#f0ff8f',hair:'#251b35',badge:'N',ability:'Pike',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'pike',specialPoints:175,spin:1.15,bounce:1},
+  {id:'rookie',name:'Boxer Barry',style:'Big dreams. Questionable underwear.',price:0,mass:75,body:1,bare:true,skin:'#dfa77f',shirt:'#dfa77f',pants:'#f4eee3',shoe:'#dfa77f',hair:'#6a422b',badge:'',ability:'Candle',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'candle',specialPoints:100,spin:1,bounce:1},
+  {id:'bruno',name:'Big Bruno',style:'Big belly. Bigger bounce.',price:80,mass:120,body:1.65,bare:true,skin:'#b97953',shirt:'#b97953',pants:'#e96b57',shoe:'#f6d569',hair:'#4b3027',badge:'',ability:'Cannonball',instruction:'Hold BOMB / B to curl up. Stay tucked for the splash.',special:'cannon',specialPoints:150,spin:.9,bounce:1.12},
+  {id:'neon',name:'Neon',style:'Light on her feet. Quick in the air.',price:220,mass:60,body:.82,skin:'#88563e',shirt:'#26d6bf',pants:'#432969',shoe:'#f0ff8f',hair:'#251b35',badge:'N',ability:'Pike',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'pike',specialPoints:175,spin:1.15,bounce:1},
 ];
 
 // Distance-constrained Verlet skeleton. Pose muscles switch off after a fall.
@@ -153,7 +153,10 @@ class KaariPhysics {
       const bombEntry=this.bombActive&&this.specialAwarded&&p.tuck>.65;
       const diveEntry=this.diveAwarded&&this.sinceDive>0&&this.sinceDive<.8&&p.tuck>.65;
       const bonus=bombEntry||diveEntry||clean?200:0;
-      this.splash={x:p.x,clean,duration:1.8,kind:bombEntry?'bomb':diveEntry?'deathdive':'normal',points:success?500+bonus:0};if(success)this.score+=500+bonus;p.vx=0;p.vy=0;
+      const impactSpeed=Math.max(0,p.vy),mass=this.character.mass;
+      const strength=clamp((.45+impactSpeed/700)*Math.sqrt(mass/75)*(bombEntry?1.25:1),.45,2.8);
+      this.splash={x:p.x,clean,duration:2.6,impactSpeed,mass,strength,kind:bombEntry?'bomb':diveEntry?'deathdive':'normal',points:success?500+bonus:0};if(success)this.score+=500+bonus;
+      p.vy=Math.max(90,p.vy*.65);p.vx*=.5;
     }else if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.twist=0;this.player.twistSpeed=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else{
       const p=this.player;
       const kind=p.tuck>.55||Math.abs(p.omega)>7?'roll':Math.cos(p.angle)<-.45?'head':Math.sin(p.angle)<-.55?'belly':Math.sin(p.angle)>.55?'back':'sit';
@@ -166,7 +169,12 @@ class KaariPhysics {
   step(dt,input={}){
     const p=this.player;if(this.ended){
       this.elapsedAfterEnd+=dt;
-      if(this.splash)return;
+      if(this.splash){
+        // Continue through the surface, then let water drag and buoyancy arrest the dive.
+        p.vx*=Math.exp(-2.8*dt);p.vy+=(32+(K_FLOOR+100-p.y)*1.5)*dt;p.vy*=Math.exp(-3*dt);
+        p.x+=p.vx*dt;p.y+=p.vy*dt;p.angle+=p.momentum*.15*dt;p.momentum*=Math.exp(-3*dt);
+        p.tuck*=Math.exp(-1.2*dt);p.specialPose=null;this.ragdoll.reset(p);return;
+      }
       if(this.crash&&!this.crash.kicked&&this.elapsedAfterEnd>.32){this.ragdoll.kick(this.crash.kind,this.crash.direction);this.crash.kicked=true;}
       this.ragdoll.step(dt,p,null,this.groundY(p.x));
       if(this.crash){p.x=this.ragdoll.joints.hip.x;p.y=this.ragdoll.joints.hip.y;p.vx=0;p.vy=0;}

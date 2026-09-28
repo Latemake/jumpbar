@@ -221,7 +221,10 @@ class KaariRenderer {
     if(islands){
       for(let i=0;i<5;i++){const isle=this.mesh(this.rockGeometry,rock);isle.position.set(edge+250+i*180,10,-170-i%2*70);isle.scale.set(70,28+i%2*20,55);this.ball(edge+250+i*180,27,-170-i%2*70,45,grass,this.world,1,.18,.8);}
     }
-    this.block(edge+game.mat.w/2,-25,-280,game.mat.w+1400,45,3200,water);
+    water.transparent=true;water.opacity=.32;water.depthWrite=false;
+    const surface=this.block(edge+game.mat.w/2,-2,-280,game.mat.w+1400,3,3200,water);surface.castShadow=false;surface.receiveShadow=false;
+    const deep=this.material(alpine?'#155b7b':'#137e89');
+    this.block(edge+game.mat.w/2,-310,-280,game.mat.w+1400,20,3200,deep);
     this.waterStreaks=[];
     for(let i=0;i<65;i++){
       const x=edge+40+(i*137)%(game.mat.w+400),z=-650+(i*97)%1050;
@@ -265,6 +268,8 @@ class KaariRenderer {
     // Shore foam marks where the safe water begins.
     for(let i=0;i<9;i++)this.ball(edge+10,0,-75+i*20,14,foam,this.world,.7,.07,1);
     this.splashGroup=new THREE.Group();this.world.add(this.splashGroup);this.splashGroup.visible=false;
+    this.bubbles=[];const bubbleMat=new THREE.MeshBasicMaterial({color:'#b8f8ff',transparent:true,opacity:.65,depthWrite:false});
+    for(let i=0;i<12;i++)this.bubbles.push(this.ball(0,0,0,1,bubbleMat,this.splashGroup));
     this.splashDrops=[];for(let i=0;i<24;i++)this.splashDrops.push(this.ball(0,0,0,3+i%3,foam,this.splashGroup));
     if(!this.rippleGeometry)this.rippleGeometry=new THREE.TorusGeometry(1,.018,5,48);
     this.ripples=[];for(let i=0;i<3;i++){const ring=this.mesh(this.rippleGeometry,foam,this.splashGroup);ring.rotation.x=Math.PI/2;this.ripples.push(ring);}
@@ -274,8 +279,9 @@ class KaariRenderer {
     this.waterStreaks.forEach((m,i)=>{m.position.x=m.userData.baseX+Math.sin(time*.65+i)*9;m.scale.x=(12+(i%5)*12)*(1+Math.sin(time+i)*.15);});
     this.splashGroup.visible=!!game.splash;
     if(!game.splash)return;
-    const t=game.elapsedAfterEnd;this.splashGroup.position.x=game.splash.x;this.splashGroup.scale.setScalar(game.splash.kind==='bomb'?1.7:game.splash.kind==='deathdive'?1.3:1);
+    const t=game.elapsedAfterEnd;this.splashGroup.position.x=game.splash.x;this.splashGroup.scale.setScalar(game.splash.strength);
     this.splashDrops.forEach((m,i)=>{const a=i*2.4,v=38+(i%5)*13;m.position.set(Math.cos(a)*t*v,Math.max(0,t*(120+(i%4)*22)-120*t*t),Math.sin(a)*t*v*.7);m.scale.setScalar(Math.max(0,1-t/1.5)*(3+i%3));});
+    this.bubbles.forEach((m,i)=>{const age=t-i*.055;m.visible=age>0&&age<2;const depth=Math.max(0,game.player.y-K_FLOOR);m.position.set((game.player.x-game.splash.x)/game.splash.strength+Math.sin(i*2.4+age*3)*9,-Math.max(3,depth/game.splash.strength-age*22),14+i%3*4);m.scale.setScalar((1+i%3*.55)*Math.max(0,1-age/2));});
     this.ripples.forEach((m,i)=>{const size=8+Math.max(0,t-i*.16)*90;m.scale.setScalar(size);m.position.y=.5+i*.1;m.visible=t>i*.16;});
   }
   buildMap(game){
@@ -338,11 +344,16 @@ class KaariRenderer {
     const inMenu=document.body.dataset.screen==='menu',time=performance.now()/1000;
     if(this.mapIndex!==game.mapIndex)this.buildMap(game);
     this.drawWater(game,time);
-    this.person.visible=inMenu||!game.splash||game.elapsedAfterEnd<.12;
+    this.person.visible=true;
+    if(game.splash&&!inMenu&&!this.mobile)focusY+=(Math.min(focusY,-30)-focusY)*Math.min(1,game.elapsedAfterEnd*3);
     const halfHeight=viewHeight/2,halfWidth=halfHeight*this.width/this.height;
     Object.assign(this.camera,{left:-halfWidth,right:halfWidth,top:halfHeight,bottom:-halfHeight});this.camera.updateProjectionMatrix();
     const cx=offset+halfWidth;
     this.camera.position.set(cx+210,focusY+265,1100);this.camera.lookAt(cx,focusY,0);
+    if(game.splash&&!inMenu&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+      const t=game.elapsedAfterEnd,a=game.splash.strength*2.1*Math.pow(Math.max(0,1-t/.42),2);
+      this.camera.position.x+=Math.sin(t*91)*a;this.camera.position.y+=Math.cos(t*113)*a*.65;
+    }
     this.sun.position.set(cx-270,720,360);this.sun.target.position.set(cx,0,0);
     let j=game.ragdoll.joints;
     if(inMenu){
