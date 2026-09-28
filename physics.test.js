@@ -245,3 +245,26 @@ test('every water chapter score gate is reachable with the free starter characte
     assert.ok(reached,chapter.title);
   }
 });
+
+test('bomb button curls Bruno only and creates a rewarded bomb splash',()=>{
+ for(const id of ['rookie','bruno']){
+ const g=new KaariPhysics(1);g.characterId=id;g.active=true;g.visited=new Set([0,1]);
+ Object.assign(g.player,{bar:-1,x:g.mat.x+250,y:-150,angle:Math.PI/2,vx:0,vy:0,momentum:0});g.ragdoll.reset(g.player);
+ for(let i=0;i<300&&!g.ended;i++)g.step(dt,{bomb:true});
+ assert.equal(g.success,true);assert.equal(g.splash.kind,id==='bruno'?'bomb':'normal');
+ assert.equal(g.splash.points,id==='bruno'?700:500);
+ assert.equal(g.events.filter(e=>e.type==='special').length,id==='bruno'?1:0);
+ }
+});
+test('death dive needs unlock, awards once and rewards a timely fold',()=>{
+ for(const unlocked of [false,true]){
+ const g=new KaariPhysics(1);g.active=true;g.deathDiveUnlocked=unlocked;g.visited=new Set([0,1]);
+ Object.assign(g.player,{bar:-1,x:g.mat.x+250,y:-150,angle:0,vx:0,vy:0,momentum:0});g.ragdoll.reset(g.player);
+ for(let i=0;i<65;i++)g.step(dt,{dive:true});
+ assert.equal(g.diveAwarded,unlocked);assert.equal(g.turns,0);
+ if(unlocked){g.player.y=300;g.player.vy=150;}
+ for(let i=0;i<300&&!g.ended;i++)g.step(dt,{tuck:true});
+ assert.equal(g.success,true);assert.equal(g.splash.kind,unlocked?'deathdive':'normal');
+ assert.equal(g.events.filter(e=>e.label==='DEATH DIVE').length,unlocked?1:0);
+ }
+});

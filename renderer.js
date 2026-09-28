@@ -65,7 +65,7 @@ class KaariRenderer {
     // One smoothly sampled surface from waist to neck. The belly is part of
     // this mesh, never a second overlapping sphere.
     const profile=new THREE.CatmullRomCurve3((big?[[.7,-1],[1,-.65],[1.05,-.15],[.94,.4],[.8,.75],[.32,1]]:[[.72,-1],[.8,-.5],[.9,.2],[1,.62],[.82,.83],[.33,1]]).map(([r,y])=>new THREE.Vector3(r,y,0)));
-    this.torso=this.mesh(new THREE.LatheGeometry(profile.getPoints(36).map(p=>new THREE.Vector2(p.x,p.y)),32),top,this.person);
+    this.torso=this.mesh(new THREE.LatheGeometry([new THREE.Vector2(0,-1),...profile.getPoints(36).map(p=>new THREE.Vector2(p.x,p.y)),new THREE.Vector2(0,1)],32),top,this.person);
     const shortsCanvas=document.createElement('canvas');shortsCanvas.width=256;shortsCanvas.height=128;const ctx=shortsCanvas.getContext('2d');ctx.fillStyle=c.pants;ctx.fillRect(0,0,256,128);ctx.fillStyle='#f8f1dc';ctx.fillRect(0,0,256,16);
     if(c.id==='rookie'){ctx.fillStyle='#3e8bbb';for(let y=32;y<128;y+=28)for(let x=12;x<256;x+=32){ctx.beginPath();ctx.arc(x+(y%56?8:0),y,4,0,Math.PI*2);ctx.fill();}}
     if(big){ctx.fillStyle='#ffd49a';for(let x=0;x<256;x+=40)ctx.fillRect(x,17,5,111);}
@@ -78,7 +78,7 @@ class KaariRenderer {
       const sign=side==='L'?-1:1;
       for(const arm of [true,false]){
         const geo=new THREE.BufferGeometry(),rings=20,segments=12,positions=new Float32Array((rings+1)*(segments+1)*3),indices=[];
-        for(let i=0;i<rings;i++)for(let k=0;k<segments;k++){const a=i*(segments+1)+k,b=a+segments+1;indices.push(a,b,a+1,b,b+1,a+1);}
+        for(let i=0;i<rings;i++)for(let k=0;k<segments;k++){const a=i*(segments+1)+k,b=a+segments+1;indices.push(a,a+1,b,b,a+1,b+1);}
         geo.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));geo.setIndex(indices);
         const mesh=this.mesh(geo,arm||c.bare?skin:cloth,this.person);mesh.frustumCulled=false;
         this.limbs.push({mesh,side,sign,arm,rings,segments,radii:arm?(big?[4.5,3.9,2.7]:[3.7,3,2.3]):(big?[6.7,4.7,3.2]:[5.2,3.6,2.6])});
@@ -105,16 +105,17 @@ class KaariRenderer {
     if(big)for(const x of [-2.5,2.5]){const mustache=this.ball(x,-2.8,9.3,2,hair,this.headGroup,1.6,.5,.5);mustache.rotation.z=x>0?.15:-.15;}
     this.person.matrixAutoUpdate=false;
   }
-  poseLimb(limb,j,inMenu){
+  poseLimb(limb,j,inMenu,specialPose){
     const {side,sign,arm,rings,segments,radii,mesh}=limb;
     const ids=arm?['chest','elbow'+side,'hand'+side]:['hip','knee'+side,'foot'+side];
     const zs=arm?[sign*this.bodyWidth*.7,sign*(inMenu?this.bodyWidth+3:9),sign*(inMenu?this.bodyWidth+5:7)]:[sign*6.5,sign*(inMenu?8:6.5),sign*(inMenu?9:6.5)];
+    if(specialPose==='deathdive'&&!inMenu){zs[1]=sign*(arm?22:12);zs[2]=sign*(arm?32:18);}
     const points=ids.map((id,i)=>new THREE.Vector3(j[id].x,K_FLOOR-j[id].y+(i===0?(arm?-2:-3):0),zs[i]));
     const curve=new THREE.CatmullRomCurve3(points,false,'centripetal'),pos=mesh.geometry.attributes.position;
     for(let i=0;i<=rings;i++){
       const t=i/rings,p=curve.getPoint(t),tangent=curve.getTangent(t).normalize();
       const normal=new THREE.Vector3(0,0,1).cross(tangent).normalize(),binormal=tangent.clone().cross(normal).normalize();
-      const cap=t<.1?Math.sqrt(1-Math.pow(1-t/.1,2)):1;
+      const cap=t<.1?Math.sqrt(1-Math.pow(1-t/.1,2)):t>.94?Math.sqrt(Math.max(0,1-Math.pow((t-.94)/.06,2))):1;
       const radius=cap*(t<.5?THREE.MathUtils.lerp(radii[0],radii[1],t*2):THREE.MathUtils.lerp(radii[1],radii[2],(t-.5)*2));
       for(let k=0;k<=segments;k++){const a=k/segments*Math.PI*2,v=p.clone().addScaledVector(normal,Math.cos(a)*radius).addScaledVector(binormal,Math.sin(a)*radius);pos.setXYZ(i*(segments+1)+k,v.x,v.y,v.z);}
     }
@@ -142,6 +143,7 @@ class KaariRenderer {
   }
   clearWorld(){
     const materials=new Set(),textures=new Set();this.world.traverse(o=>{if(o.material){const list=Array.isArray(o.material)?o.material:[o.material];for(const m of list){materials.add(m);if(m.map)textures.add(m.map);}}});
+    this.world.traverse(o=>{if(o.geometry?.userData.worldOwned)o.geometry.dispose();});
     this.world.clear();for(const m of materials)m.dispose();for(const t of textures)t.dispose();
   }
   buildLandmarks(game,length){
@@ -192,16 +194,32 @@ class KaariRenderer {
     const grass=this.material(alpine?'#aac5b3':islands?'#5a9566':'#83ba75');
     const water=this.material(warm?'#369fa7':alpine?'#237eaa':'#16b9bd',.18,.3),foam=this.material('#c7fff0',.4);
     const edge=game.mat.x;
-    // The actual takeoff cliff ends at the water boundary, with layered rock
-    // faces down to the lake and an open foreground for the flight path.
-    this.block((edge-900)/2,73,0,edge+900,210,180,rock);
-    this.block((edge-900)/2,178,0,edge+900,5,180,grass);
-    for(let i=0;i<16;i++){
-      const x=-650+i*65;
-      if(x>edge-20)continue;
-      const stone=this.mesh(this.rockGeometry,i%2?rock:lightRock);
-      stone.position.set(x,75,72);stone.scale.set(49,95+(i%3)*5,35);stone.rotation.y=i;
-      for(let k=0;k<3;k++)this.block(x,25+k*52+(i%2)*8,91,59,3,2,lightRock);
+    const points=game.map.terrain.filter(([x])=>x>=-900),shape=new THREE.Shape();
+    shape.moveTo(-900,-35);shape.lineTo(edge-90,-35);
+    const summit=terrainHeight(game.map,edge);
+    if(alpine){shape.lineTo(edge+45,35);shape.lineTo(edge-55,110);shape.lineTo(edge+15,180);shape.lineTo(edge-45,265);shape.lineTo(edge+22,330);}
+    else if(warm){shape.lineTo(edge-55,45);shape.lineTo(edge-95,135);shape.lineTo(edge-38,225);}
+    else if(islands){shape.lineTo(edge+50,12);shape.lineTo(edge+24,45);shape.lineTo(edge-15,82);}
+    else{shape.lineTo(edge+65,8);shape.lineTo(edge+38,50);shape.lineTo(edge+12,95);}
+    shape.lineTo(edge,summit);
+    for(const [x,h] of [...points].reverse())shape.lineTo(x,h);
+    shape.closePath();
+    if(warm){const arch=new THREE.Path();arch.absellipse(280,100,90,75,0,Math.PI*2,true);shape.holes.push(arch);}
+    const geo=new THREE.ExtrudeGeometry(shape,{depth:180,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:9,bevelThickness:8});geo.userData.worldOwned=true;
+    const land=this.mesh(geo,rock);land.position.z=-90;
+    // A sloping lip follows the actual collision surface, not a rectangular cap.
+    for(let i=1;i<points.length;i++){
+      const [a,h]=points[i-1],[b,k]=points[i],dx=b-a,dy=k-h;
+      const lip=this.block((a+b)/2,(h+k)/2+1,0,Math.hypot(dx,dy),5,172,alpine?lightRock:grass);lip.rotation.z=Math.atan2(dy,dx);
+    }
+    for(let i=0;i<12;i++){
+      const x=-300+i*65;if(x>edge-35)continue;
+      const h=terrainHeight(game.map,x),stone=this.mesh(this.rockGeometry,i%2?rock:lightRock);
+      stone.position.set(x,h*.35,94);stone.scale.set(30+(i%3)*10,h*.36,20);stone.rotation.y=i*.8;
+      if(!warm)for(let k=0;k<2;k++){const ledge=this.block(x,h*(.25+k*.35),105,45,4,8,lightRock);ledge.rotation.z=(i%3-1)*.08;}
+    }
+    if(islands){
+      for(let i=0;i<5;i++){const isle=this.mesh(this.rockGeometry,rock);isle.position.set(edge+250+i*180,10,-170-i%2*70);isle.scale.set(70,28+i%2*20,55);this.ball(edge+250+i*180,27,-170-i%2*70,45,grass,this.world,1,.18,.8);}
     }
     this.block(edge+game.mat.w/2,-25,-280,game.mat.w+1400,45,3200,water);
     this.waterStreaks=[];
@@ -256,7 +274,7 @@ class KaariRenderer {
     this.waterStreaks.forEach((m,i)=>{m.position.x=m.userData.baseX+Math.sin(time*.65+i)*9;m.scale.x=(12+(i%5)*12)*(1+Math.sin(time+i)*.15);});
     this.splashGroup.visible=!!game.splash;
     if(!game.splash)return;
-    const t=game.elapsedAfterEnd;this.splashGroup.position.x=game.splash.x;
+    const t=game.elapsedAfterEnd;this.splashGroup.position.x=game.splash.x;this.splashGroup.scale.setScalar(game.splash.kind==='bomb'?1.7:game.splash.kind==='deathdive'?1.3:1);
     this.splashDrops.forEach((m,i)=>{const a=i*2.4,v=38+(i%5)*13;m.position.set(Math.cos(a)*t*v,Math.max(0,t*(120+(i%4)*22)-120*t*t),Math.sin(a)*t*v*.7);m.scale.setScalar(Math.max(0,1-t/1.5)*(3+i%3));});
     this.ripples.forEach((m,i)=>{const size=8+Math.max(0,t-i*.16)*90;m.scale.setScalar(size);m.position.y=.5+i*.1;m.visible=t>i*.16;});
   }
@@ -273,7 +291,7 @@ class KaariRenderer {
     this.block(length/2,-13,0,length+240,20,170,concrete);this.block(length/2,-2,0,length+200,3,145,deck);
     this.block(length/2,-5,78,length+230,13,6,edge);
     const lane=this.material('#eaf0d4');for(const z of [-57,57])this.block(length/2,.1,z,length+150,.4,1.8,lane);
-    const seam=this.material('#a6b59c');for(let x=-80;x<length+160;x+=70)this.block(x,-.1,0,.7,.5,140,seam);
+    const seam=this.material(game.map.id==='city'?'#53677c':'#a6b59c');for(let x=-80;x<length+160;x+=70)this.block(x,-.1,0,.7,.5,140,seam);
     if(coast){
       const sea=this.material('#729eac',.25,.25);this.block(length/2,-10,-610,length+2200,2,720,sea);
       const foam=this.material('#bdd8d5');for(let i=0;i<16;i++)this.block(i*180-400,-8.7,-430-(i%4)*90,80+(i%3)*30,.3,2,foam);
@@ -287,7 +305,7 @@ class KaariRenderer {
       const x=i*250-350,z=-190-(i%3)*65;this.makeTree(x,z,135+(i%3)*25,coast?'coast':sunset?'sunset':'garden');
       if(i%2===0){this.block(x+75,8,-120,63,6,23,stone);for(const dx of [-22,22])this.block(x+75+dx,0,-120,4,17,20,dark);}
     }
-    const backWall=this.material(sunset?'#c7b3a0':'#b8c6b2');this.block(length/2,16,-110,length+450,35,8,backWall);
+    const backWall=this.material(game.map.id==='city'?'#5c7084':sunset?'#c7b3a0':'#b8c6b2');this.block(length/2,16,-110,length+450,35,8,backWall);
     this.block(length/2,36,-110,length+470,5,15,concrete);
     this.buildLandmarks(game,length);
     }
@@ -296,7 +314,7 @@ class KaariRenderer {
     game.bars.forEach((b,i)=>{
       const y=K_FLOOR-b.y;
       for(const z of [-38,38]){
-        const base=game.water?180:0;
+        const base=game.water?terrainHeight(game.map,b.x):0;
         this.rod([b.x,base+2,z],[b.x,y+6,z],4.5,frame);
         this.block(b.x,base+3,z,34,6,22,rubber);
         for(const dx of [-11,11])this.ball(b.x+dx,base+7,z,2,bolt);
@@ -333,7 +351,7 @@ class KaariRenderer {
       j=Object.fromEntries(Object.entries(pose).map(([id,[x,y]])=>[id,{x,y:K_FLOOR-y-bounce}]));
     }
     const point=(id,z=0)=>[j[id].x,K_FLOOR-j[id].y,z];
-    for(const limb of this.limbs)this.poseLimb(limb,j,inMenu);
+    for(const limb of this.limbs)this.poseLimb(limb,j,inMenu,game.player.specialPose);
     const hip=new THREE.Vector3(...point('hip')),chest=new THREE.Vector3(...point('chest')),dir=chest.clone().sub(hip);
     this.torso.position.copy(hip).add(chest).multiplyScalar(.5);this.torso.quaternion.setFromUnitVectors(this.up,dir.clone().normalize());this.torso.scale.set(this.bodyDepth,(dir.length()+7)/2,this.bodyWidth);
     this.hips.position.copy(hip).addScaledVector(dir.clone().normalize(),-2);this.hips.quaternion.copy(this.torso.quaternion);

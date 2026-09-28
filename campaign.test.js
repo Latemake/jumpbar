@@ -42,3 +42,15 @@ test('retired characters refund their purchase prices once and preserve chapter 
   assert.equal(c.buy('astro'),false);assert.equal(c.buy('shadow'),false);
   const reloaded=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(reloaded.data.coins,1155);assert.equal(reloaded.unlocked,1);
 });
+
+test('new trick tutorials queue only when unlocked and acknowledgements persist',()=>{
+ const c=new JumpbarCampaign();assert.deepEqual(c.pendingTutorials().map(t=>t.id),['candle']);
+ assert.equal(c.acknowledgeTutorial('deathdive'),false);assert.equal(c.trickUnlocked('cannon'),false);
+ c.acknowledgeTutorial('candle');c.claim(result(0,900));c.buy('bruno');
+ assert.deepEqual(c.pendingTutorials().map(t=>t.id),['cannon']);
+ c.claim(result(1,12000));assert.equal(c.trickUnlocked('deathdive'),true);
+ assert.deepEqual(c.pendingTutorials().map(t=>t.id),['cannon','deathdive']);
+ const restored=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));
+ assert.deepEqual(restored.pendingTutorials().map(t=>t.id),['cannon','deathdive']);
+ restored.acknowledgeTutorial('cannon');restored.acknowledgeTutorial('deathdive');assert.equal(restored.pendingTutorials().length,0);
+});

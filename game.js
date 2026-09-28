@@ -1,6 +1,6 @@
 ﻿'use strict';
 const canvas=document.getElementById('game');
-const ui=Object.fromEntries(['menu','hud','touch','pause','result','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
+const ui=Object.fromEntries(['menu','hud','touch','pause','result','guide','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
 const game=new KaariPhysics(),keys=new Set(),touchKeys=new Set();
 const touchPointers=new Map();
 const touchMode=navigator.maxTouchPoints>0||matchMedia('(any-pointer: coarse)').matches;
@@ -56,13 +56,13 @@ function followMobilePlayer(dt=0,snap=false){
 function resize(){const r=canvas.getBoundingClientRect();width=r.width;height=r.height;scale=height/480;graphics.resize();if(touchMode&&screen!=='menu')followMobilePlayer(0,true);}
 new ResizeObserver(resize).observe(canvas);
 function held(code){return keys.has(code)||touchKeys.has(code);}
-function controls(){return{special:held('KeyE'),grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
+function controls(){return{bomb:held('KeyB')&&game.characterId==='bruno',dive:held('KeyF')&&campaign.trickUnlocked('deathdive'),special:held('KeyE'),grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
 function clearInput(){if(game.grounded){game.groundHeld=false;game.groundCharge=0;}keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
 function setScreen(next){
   screen=next;document.body.dataset.screen=next;clearInput();
   document.getElementById('target-guide').hidden=true;
-  for(const name of ['menu','pause','result'])ui[name].hidden=next!==name;
-  ui.hud.hidden=next==='menu';ui.touch.hidden=next!=='play';
+  for(const name of ['menu','pause','result','guide'])ui[name].hidden=next!==name;
+  ui.hud.hidden=!['play','pause','result'].includes(next);ui.touch.hidden=next!=='play';
   if(next==='play')canvas.focus();
   else if(next==='pause')document.getElementById('resume').focus();
   else if(next==='result')document.getElementById('again').focus();
@@ -104,7 +104,7 @@ for(const [chapterIndex,chapter] of JUMPBAR_CHAPTERS.entries()){
   const index=chapter.map,map=KAARI_MAPS[index];
   const button=document.createElement('button');button.className=`map-card ${map.id}`;button.dataset.map=index;button.dataset.chapter=chapterIndex;button.type='button';
   button.setAttribute('aria-label',`${map.name}, ${map.description}`);
-  button.innerHTML=`<span class="map-art"><i></i><b>${String(chapterIndex+1).padStart(2,'0')}</b></span><span class="map-info"><strong>${map.name}</strong><small>${map.description.split(' · ').slice(0,2).join(' · ')}</small></span>`;
+  button.innerHTML=`<span class="map-art"><img src="assets/maps/${map.id}.webp" alt="${map.name} course preview" loading="lazy"><b>${String(chapterIndex+1).padStart(2,'0')}</b></span><span class="map-info"><strong>${map.name}</strong><small>${map.description.split(' · ').slice(0,2).join(' · ')}</small></span>`;
   button.onclick=()=>{if(performance.now()>mapDrag.ignoreUntil)reset(index);};mapTrack.appendChild(button);
 }
 const mapDrag={id:null,startX:0,startY:0,dx:0,dragging:false,ignoreUntil:0};
@@ -115,12 +115,12 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])mapTrack.ad
 for(const [id,direction] of [['map-prev',-1],['map-next',1]]){const button=document.getElementById(id);button.addEventListener('pointerup',e=>{if(e.button!==0)return;e.preventDefault();cycleMap(direction);});button.onclick=e=>{if(e.detail===0)cycleMap(direction);};}
 mapTrack.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();e.stopPropagation();cycleMap(e.code==='ArrowRight'?1:-1);}});
 function reset(mapIndex=game.mapIndex){
-  clearInput();clearCombo();game.reset(mapIndex);game.characterId=campaign.data.equipped;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
+  clearInput();clearCombo();game.reset(mapIndex);game.characterId=campaign.data.equipped;game.deathDiveUnlocked=campaign.trickUnlocked('deathdive');document.querySelector('[data-key=KeyB]').hidden=game.characterId!=='bruno';document.querySelector('[data-key=KeyF]').hidden=!game.deathDiveUnlocked;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
   if(touchMode)followMobilePlayer(0,true);
   updateMapCarousel();sync();
 }
 function enterFullscreen(){if(!document.fullscreenElement&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(()=>{});}
-function start(){if(!campaign.available(game.mapIndex)||!campaign.owns(selectedCharacter))return;reset();setScreen('play');enterFullscreen();}
+function start(){if(!campaign.available(game.mapIndex)||!campaign.owns(selectedCharacter))return;reset();enterFullscreen();beginWithTutorials();}
 function menu(){reset();setScreen('menu');}
 function pause(){if(screen==='play'&&!game.ended)setScreen('pause');}
 function resume(){if(game.player.bar>=0)game.active=false;setScreen('play');}
@@ -136,16 +136,17 @@ function step(dt){
     if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
     }else if(event.type==='finish'){
       const reward=campaign.claim(game);saveCampaign();readBest();
-      ui['result-label'].textContent=event.splash?(!event.success?'VISIT BOTH BARS':event.splash.clean?'CLEAN DIVE +200':'SPLASH!'):event.success?'CLEAN LANDING':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'SPLASH!':'MISSED A BAR!'):event.success?'STUCK IT!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} bars / best combo ${game.maxChain} · best ${best}`;
+      ui['result-label'].textContent=event.splash?(!event.success?'VISIT BOTH BARS':event.splash.kind==='bomb'?'CANNONBALL +200':event.splash.kind==='deathdive'?'DEATH DIVE +200':event.splash.clean?'CLEAN DIVE +200':'SPLASH!'):event.success?'CLEAN LANDING':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'SPLASH!':'MISSED A BAR!'):event.success?'STUCK IT!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} bars / best combo ${game.maxChain} · best ${best}`;
       if(reward){
         document.getElementById('result-reward').textContent='+'+reward.coins+' ◈ COINS';
         const chapter=campaign.chapter(game.mapIndex),cleared=campaign.cleared(game.mapIndex),index=JUMPBAR_CHAPTERS.indexOf(chapter);
         document.getElementById('result-unlock').textContent=reward.firstClear?(reward.allClear?'From underwear to champion! Story complete. Go collect every star.':'Chapter complete! The next course is unlocked.'):cleared?'Chapter complete · aim for more stars.':event.success?'Finished! Earn another '+reward.missing+' points in a single run.':'Reach the finish with '+chapter.goal+' points to unlock the next chapter.';
         document.getElementById('next-chapter').hidden=!cleared||index===JUMPBAR_CHAPTERS.length-1;
         if(reward.allClear&&reward.firstClear)ui['result-title'].textContent='CHAMPION!';
+        if(reward.newChapter&&campaign.trickUnlocked('deathdive')&&!campaign.data.tutorialsSeen.includes('deathdive'))document.getElementById('result-unlock').textContent+=' NEW TRICK: Death dive!';
         updateCampaignMenu();
       }
-      if(event.splash){particles.push({x:event.splash.x,y:K_FLOOR-60,label:!event.success?'SPLASH!':event.splash.clean?'+700 SPLASH!':'+500 SPLASH!',life:1.6});clearInput();ui.touch.hidden=true;}
+      if(event.splash){particles.push({x:event.splash.x,y:K_FLOOR-60,label:!event.success?'SPLASH!':'+'+event.splash.points+' SPLASH!',life:1.6});clearInput();ui.touch.hidden=true;}
       if(event.crash){particles.push({x:event.crash.x,y:K_FLOOR-95,label:event.crash.sound,life:1.8});clearInput();ui.touch.hidden=true;}
     }else{const label=event.type==='special'?`+${event.points} ${event.label}`:event.type==='bounce'||event.type==='ground'?event.label:event.type==='flip'?`+250 ${event.label}`:event.type==='twist'?`+200 ${event.label}`:event.type==='combo'?`COMBO +150 · ${event.label}`:'+100';if(event.type==='combo')particles=[];particles.push({x:event.x,y:event.y-40,label,life:event.type==='combo'?2:1.5});if(event.type==='catch')trail=[];}
     sync();
@@ -169,7 +170,7 @@ function draw(){const inMenu=screen==='menu',offset=inMenu?game.player.x-width/s
 function releaseIfNeeded(){if(screen==='play'&&!held('Space')&&game.active)game.release();}
 window.addEventListener('keydown',e=>{
   if(screen==='menu'&&['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();cycleCharacter(e.code==='ArrowRight'?1:-1);return;}
-  if(e.code==='Escape'){e.preventDefault();if(screen==='play')pause();else if(screen==='pause')resume();return;}
+  if(e.code==='Escape'){e.preventDefault();if(screen==='guide'){closeGuide();return;}if(screen==='play')pause();else if(screen==='pause')resume();return;}
   if(screen!=='play')return;
   if(e.target instanceof HTMLElement&&e.target.matches('button,a,input'))return;
   if(['Space','ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys.add(e.code);
@@ -200,11 +201,11 @@ window.visualViewport?.addEventListener('resize',resize);
 document.querySelectorAll('[data-menu]').forEach(button=>button.onclick=menu);
 document.getElementById('next-chapter').onclick=()=>{const index=JUMPBAR_CHAPTERS.findIndex(c=>c.map===game.mapIndex);if(index<JUMPBAR_CHAPTERS.length-1&&campaign.available(JUMPBAR_CHAPTERS[index+1].map)){reset(JUMPBAR_CHAPTERS[index+1].map);selectCharacter(campaign.data.equipped);setScreen('menu');}};
 document.getElementById('play').onclick=start;document.getElementById('pause-button').onclick=pause;
-for(const id of ['restart','again','pause-restart'])document.getElementById(id).onclick=()=>{reset();setScreen('play');};
+for(const id of ['restart','again','pause-restart'])document.getElementById(id).onclick=()=>{reset();beginWithTutorials();};
 document.getElementById('fullscreen').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});else enterFullscreen();};
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)pause();});
 document.getElementById('help-toggle').onclick=()=>{const help=document.getElementById('help');help.hidden=!help.hidden;document.getElementById('help-toggle').setAttribute('aria-expanded',String(!help.hidden));};
-let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((time-last)/1000,.05);last=time;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();requestAnimationFrame(frame);}reset(JUMPBAR_CHAPTERS[campaign.unlocked].map);setScreen('menu');requestAnimationFrame(frame);
+let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((time-last)/1000,.05);last=time;while(accumulator>=1/120){step(1/120);accumulator-=1/120;}draw();if(typeof drawGuide==='function')drawGuide(time);requestAnimationFrame(frame);}reset(JUMPBAR_CHAPTERS[campaign.unlocked].map);setScreen('menu');requestAnimationFrame(frame);
 
 
 

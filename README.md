@@ -117,13 +117,19 @@ finishes add 20, and first chapter clears add 60-200. Each run can be claimed
 once and first-clear bonuses cannot repeat. Old sandbox records are retained
 under their old storage keys but do not unlock campaign chapters.
 
-Kalsari-Kalle starts in patterned underwear. The shop adds round-bodied Mohko,
-slender Neon, Varjo and the bulky Astro. Each has a distinct special trick;
-Neon/Varjo turn faster and Mohko/ Astro have stronger recovery jumps.
-Hold E or the minimal TEMPPU touch button to perform the selected character's
-special. The character menu explains the required tuck/twist input. Hold poses
-for 0.4 seconds, or combine a flip with a twist for Varjo's corkscrew. Each
-special scores once per flight. Straight-body flips receive an extra bonus.
+Boxer Barry starts in patterned underwear. The shop adds Big Bruno and Neon.
+Hold E / TRICK for the character's signature pose. Bruno also has a dedicated
+B / BOMB button that automatically tucks. Clear chapter 2 to unlock F / DIVE:
+hold for 0.35 seconds, then release and tuck within 0.8 seconds of water entry
+for the timed-fold bonus. Each special scores once per flight.
+
+The menu's Trick Book lists every move, its owner, inputs and unlock condition.
+Newly unlocked signature moves and Death dive show a short looping tutorial
+before the next run. Dismissed examples remain queued until acknowledged.
+
+Courses have wider bar spacing and four distinct water terrain profiles:
+a low bay, a sandstone arch, uneven islands, and a tall jagged alpine cliff.
+Map cards use actual rendered WebP images in assets/maps.
 
 Feet-first falls onto solid ground can be recovered: tuck briefly (0.035-0.6
 seconds) and release to bounce towards the next missed bar. Hold grip to catch.

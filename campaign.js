@@ -7,10 +7,22 @@ const JUMPBAR_CHAPTERS=[
   {map:3,title:'5 · Rooftop Royalty',goal:3000,reward:160,story:'Keep your rhythm across the rooftops. Bounce back from a fall.'},
   {map:5,title:'6 · The Final Summit',goal:3200,reward:200,story:'The alpine finale. Put everything you have learned together.'}
 ];
+const JUMPBAR_TRICKS=[
+  {id:'backflip',name:'Backflip',owners:[],points:'250 per turn',keys:'TUCK / ↓',how:'Launch while rotating backwards. Hold TUCK to spin faster; release it to prepare your landing.',unlock:'Available from the start.',demo:'flip'},
+  {id:'frontflip',name:'Frontflip',owners:[],points:'250 per turn',keys:'TUCK / ↓',how:'Release on the opposite swing to rotate forwards. Tuck for speed, then open before landing.',unlock:'Available from the start.',demo:'frontflip'},
+  {id:'twist',name:'360° twist',owners:[],points:'200 per turn',keys:'↶ / ↷ · A / D',how:'Hold a twist arrow in the air for a full turn. Release to brake. Combine it with a flip for +150.',unlock:'Available from the start.',demo:'twist'},
+  {id:'layout',name:'Layout flip',owners:[],points:'+150 bonus',keys:'Release TUCK',how:'Complete a full flip with a straight body. You need more swing speed than a tucked flip.',unlock:'Available from the start.',demo:'layout'},
+  {id:'combo',name:'Trick chain',owners:[],points:'Up to ×6',keys:'TRICK → GRIP',how:'Do a trick and catch a new bar. Keep doing trick jumps to raise the multiplier. A plain jump, old bar or ground landing breaks it.',unlock:'Available from the start.',demo:'flip'},
+  {id:'bounce',name:'Recovery bounce',owners:[],points:'Save your run',keys:'Tap TUCK · release',how:'Land on your feet, hold TUCK briefly (under 0.6 s), then release. Hold GRIP to catch the next bar.',unlock:'Available from the start.',demo:'bounce'},
+  {id:'candle',name:'Candle',owners:['rookie'],points:'100',keys:'TRICK / E',how:'As Boxer Barry, hold TRICK for 0.4 s in the air without tucking. Keep your body straight.',unlock:'Start with Boxer Barry.',demo:'candle',tutorial:true},
+  {id:'cannon',name:'Cannonball',owners:['bruno'],points:'150 · +200 bomb entry',keys:'BOMB / B',how:'As Big Bruno, hold BOMB in the air. It tucks you automatically. Hold for 0.4 s, then stay curled until you hit the water for a huge splash and +200 entry bonus.',unlock:'Buy Big Bruno for 80 coins.',demo:'cannon',tutorial:true},
+  {id:'pike',name:'Pike',owners:['neon'],points:'175',keys:'TRICK / E',how:'As Neon, hold TRICK without TUCK for 0.4 s in the air. Fold at the hips with straight legs, then release to open.',unlock:'Buy Neon for 220 coins.',demo:'pike',tutorial:true},
+  {id:'deathdive',name:'Death dive',owners:[],points:'250 · +200 timed fold',keys:'DIVE / F → TUCK',how:'Above water, hold DIVE for 0.35 s to spread out face-down. Just before impact, release DIVE and hold TUCK. Fold within the last 0.8 s for +200.',unlock:'Complete chapter 2 with 1,200 points.',demo:'deathdive',tutorial:true,chapter:1}
+];
 class JumpbarCampaign {
   constructor(saved=null){
     const chars=typeof JUMPBAR_CHARACTERS!=='undefined'?JUMPBAR_CHARACTERS:require('./physics').JUMPBAR_CHARACTERS;
-    this.characters=chars;this.data={version:1,coins:0,owned:['rookie'],equipped:'rookie',records:{}};
+    this.characters=chars;this.data={version:1,coins:0,owned:['rookie'],equipped:'rookie',records:{},tutorialsSeen:[]};
     if(saved&&saved.version===1){
       const integer=n=>Number.isSafeInteger(n)&&n>=0?n:0;
       this.data.coins=integer(saved.coins);
@@ -20,6 +32,7 @@ class JumpbarCampaign {
       this.data.owned=['rookie',...chars.filter(c=>c.id!=='rookie'&&Array.isArray(saved.owned)&&saved.owned.includes(c.id)).map(c=>c.id)];
       this.data.equipped=this.data.owned.includes(saved.equipped)?saved.equipped:'rookie';
       for(const chapter of JUMPBAR_CHAPTERS){const r=saved.records?.[chapter.map];if(r&&typeof r==='object')this.data.records[chapter.map]={best:integer(r.best),successBest:integer(r.successBest)};}
+      this.data.tutorialsSeen=JUMPBAR_TRICKS.filter(t=>t.tutorial&&Array.isArray(saved.tutorialsSeen)&&saved.tutorialsSeen.includes(t.id)).map(t=>t.id);
     }
   }
   chapter(map){return JUMPBAR_CHAPTERS.find(c=>c.map===map);}
@@ -28,6 +41,9 @@ class JumpbarCampaign {
   cleared(map){return(this.data.records[map]?.successBest||0)>=(this.chapter(map)?.goal||Infinity);}
   stars(map){const score=this.data.records[map]?.successBest||0,goal=this.chapter(map)?.goal||Infinity;return score>=goal*2?3:score>=goal*1.5?2:score>=goal?1:0;}
   owns(id){return this.data.owned.includes(id);}
+  trickUnlocked(id){const t=JUMPBAR_TRICKS.find(t=>t.id===id);return !!t&&(!t.owners.length||t.owners.some(id=>this.owns(id)))&&(t.chapter===undefined||this.cleared(t.chapter));}
+  pendingTutorials(){return JUMPBAR_TRICKS.filter(t=>t.tutorial&&this.trickUnlocked(t.id)&&!this.data.tutorialsSeen.includes(t.id));}
+  acknowledgeTutorial(id){if(!this.trickUnlocked(id))return false;if(!this.data.tutorialsSeen.includes(id))this.data.tutorialsSeen.push(id);return true;}
   equip(id){if(!this.owns(id))return false;this.data.equipped=id;return true;}
   buy(id){
     const character=this.characters.find(c=>c.id===id);
@@ -49,4 +65,4 @@ class JumpbarCampaign {
     return{coins,trickCoins,firstClear,cleared,newChapter:this.unlocked>oldUnlocked,allClear:JUMPBAR_CHAPTERS.every(c=>this.cleared(c.map)),missing:Math.max(0,chapter.goal-score)};
   }
 }
-if(typeof module!=='undefined')module.exports={JumpbarCampaign,JUMPBAR_CHAPTERS};
+if(typeof module!=='undefined')module.exports={JumpbarCampaign,JUMPBAR_CHAPTERS,JUMPBAR_TRICKS};
