@@ -81,16 +81,28 @@ class KaariPhysics {
     this.mapIndex=clamp(mapIndex,0,KAARI_MAPS.length-1);this.map=KAARI_MAPS[this.mapIndex];this.bars=this.map.points.map(([x,y])=>({x,y:y+55}));this.mat={x:this.bars.at(-1).x+65,w:this.map.landing+80};
     const b=this.bars[0],angle=-.85;
     this.player={x:b.x+Math.sin(angle)*76,y:b.y+Math.cos(angle)*76,vx:0,vy:0,angle,omega:0,radius:76,tuck:0,bar:0,cooldown:0,momentum:0,twist:0,twistSpeed:0};
-    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
+    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.chain=0;this.maxChain=0;this.flightPoints=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
   }
   inertia(tuck){return 1-.65*tuck;}
+  settleCombo(validTarget){
+    if(validTarget&&this.flightPoints>0){
+      this.chain++;this.maxChain=Math.max(this.maxChain,this.chain);
+      const multiplier=Math.min(6,this.chain+1),bonus=this.flightPoints*(multiplier-1);
+      this.score+=bonus;
+      this.events.push({type:'chain',chain:this.chain,multiplier,bonus});
+    }else{
+      if(this.chain)this.events.push({type:'chainBreak'});
+      this.chain=0;
+    }
+    this.flightPoints=0;
+  }
   release(){
     const p=this.player;if(p.bar<0||this.ended)return;
     p.vx=Math.cos(p.angle)*p.radius*p.omega;p.vy=-Math.sin(p.angle)*p.radius*p.omega;
-    p.momentum=p.omega*this.inertia(p.tuck);p.bar=-1;p.cooldown=.22;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;p.twist=0;p.twistSpeed=0;
+    p.momentum=p.omega*this.inertia(p.tuck);p.bar=-1;p.cooldown=.22;this.flightPoints=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;p.twist=0;p.twistSpeed=0;
   }
   finish(success){
-    if(this.ended)return;this.ended=true;this.success=success;
+    if(this.ended)return;this.ended=true;this.success=success;this.settleCombo(success);
     if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.twist=0;this.player.twistSpeed=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else{
       const p=this.player;
       const kind=p.tuck>.55||Math.abs(p.omega)>7?'roll':Math.cos(p.angle)<-.45?'head':Math.sin(p.angle)<-.55?'belly':Math.sin(p.angle)>.55?'back':'sit';
@@ -133,15 +145,16 @@ class KaariPhysics {
       }
       const rotation=p.omega*dt;p.angle+=rotation;this.airRotation+=rotation;
       const completed=Math.floor(Math.abs(this.airRotation)/K_TAU);
-      if(completed>this.turns){this.score+=250*(completed-this.turns);this.turns=completed;this.events.push({type:'flip',label:this.airRotation>0?'BACKFLIP':'FRONTFLIP',x:p.x,y:p.y});}
+      if(completed>this.turns){this.flightPoints+=250*(completed-this.turns);this.score+=250*(completed-this.turns);this.turns=completed;this.events.push({type:'flip',label:this.airRotation>0?'BACKFLIP':'FRONTFLIP',x:p.x,y:p.y});}
       const twists=Math.floor(Math.abs(p.twist)/K_TAU);
-      if(twists>this.twistTurns){this.score+=200*(twists-this.twistTurns);this.twistTurns=twists;this.events.push({type:'twist',label:`${twists*360}°`,x:p.x,y:p.y});}
-      if(this.turns>0&&this.twistTurns>0&&!this.comboAwarded){this.comboAwarded=true;this.score+=150;this.events.push({type:'combo',label:`${this.airRotation>0?'BACKFLIP':'FRONTFLIP'} ${this.twistTurns*360}°`,x:p.x,y:p.y-25});}
+      if(twists>this.twistTurns){this.flightPoints+=200*(twists-this.twistTurns);this.score+=200*(twists-this.twistTurns);this.twistTurns=twists;this.events.push({type:'twist',label:`${twists*360}°`,x:p.x,y:p.y});}
+      if(this.turns>0&&this.twistTurns>0&&!this.comboAwarded){this.comboAwarded=true;this.flightPoints+=150;this.score+=150;this.events.push({type:'combo',label:`${this.airRotation>0?'BACKFLIP':'FRONTFLIP'} ${this.twistTurns*360}°`,x:p.x,y:p.y-25});}
       if(input.grip&&p.cooldown<=0){
         const hand=this.ragdoll.pose(p).handR;
         for(let i=0;i<this.bars.length;i++){
           const b=this.bars[i];if(Math.hypot(hand.x-b.x,hand.y-b.y)>42)continue;
           p.angle=Math.atan2(p.x-b.x,p.y-b.y);p.omega=(p.vx*Math.cos(p.angle)-p.vy*Math.sin(p.angle))/p.radius;p.bar=i;p.twist=0;p.twistSpeed=0;p.x=b.x+Math.sin(p.angle)*p.radius;p.y=b.y+Math.cos(p.angle)*p.radius;
+          this.settleCombo(!this.visited.has(i));
           if(!this.visited.has(i)){this.visited.add(i);this.score+=100;this.events.push({type:'catch',index:i,x:b.x,y:b.y});}break;
         }
       }

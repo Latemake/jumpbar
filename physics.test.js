@@ -11,6 +11,8 @@ test('air twists combine with backflips, brake on release, and preserve the 2D t
   assert.ok(twisted.twistTurns>=1);assert.equal(twisted.events.filter(e=>e.type==='combo').length,1);
   assert.ok(twisted.events.some(e=>e.type==='combo'&&e.label.startsWith('BACKFLIP')));
   assert.equal(twisted.score-plain.score,twisted.twistTurns*200+150);
+  assert.equal(twisted.flightPoints,twisted.score);
+  assert.equal(plain.flightPoints,plain.score);
   for(let i=0;i<60;i++)twisted.step(dt,{tuck:true,twist:0});
   assert.ok(Math.abs(twisted.player.twistSpeed)<.1);
   assert.equal(twisted.events.filter(e=>e.type==='combo').length,1);
@@ -139,4 +141,25 @@ test('a fall leaves a finite, connected ragdoll above the floor',()=>{
 test('map changes clear score, progress, fall state and momentum',()=>{
   const game=new KaariPhysics();pump(game,500);game.score=500;game.finish(false);game.reset(2);
   assert.equal(game.bars.length,8);assert.equal(game.visited.size,1);assert.equal(game.score,0);assert.equal(game.player.omega,0);assert.equal(game.ended,false);assert.equal(game.ragdoll.fallen,false);
+});
+
+test('combo chains reward consecutive trick transfers, cap at x6 and reject repeat bars',()=>{
+  const g=new KaariPhysics(5);g.active=true;
+  function catchBar(index,points){
+    Object.assign(g.player,{bar:-1,x:g.bars[index].x,y:g.bars[index].y+76,angle:0,twist:0,twistSpeed:0,vx:0,vy:0,momentum:0,tuck:0,cooldown:0});
+    g.airRotation=0;g.turns=0;g.twistTurns=0;g.flightPoints=points;
+    g.ragdoll.reset(g.player);g.step(0,{grip:true});
+    assert.equal(g.player.bar,index);
+  }
+  catchBar(1,250);assert.equal(g.chain,1);assert.equal(g.score,350);
+  catchBar(2,600);assert.equal(g.chain,2);assert.equal(g.score,1650);
+  catchBar(2,250);assert.equal(g.chain,0);assert.equal(g.score,1650);
+  catchBar(3,250);assert.equal(g.chain,1);
+  catchBar(4,0);assert.equal(g.chain,0);
+  catchBar(5,200);assert.equal(g.chain,1);
+  g.flightPoints=250;g.finish(false);assert.equal(g.chain,0);assert.equal(g.maxChain,2);
+  g.reset();assert.equal(g.maxChain,0);assert.equal(g.flightPoints,0);
+  for(let i=0;i<8;i++){g.flightPoints=250;g.settleCombo(true);}
+  assert.equal(g.events.at(-1).multiplier,6);assert.equal(g.events.at(-1).bonus,1250);
+  g.flightPoints=200;const before=g.score;g.finish(true);assert.equal(g.score-before,1500);
 });

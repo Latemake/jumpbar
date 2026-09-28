@@ -52,6 +52,26 @@ function setScreen(next){
   else if(next==='pause')document.getElementById('resume').focus();
   else if(next==='result')document.getElementById('again').focus();
 }
+const comboDisplay=document.getElementById('combo-display');
+function clearCombo(){comboDisplay.hidden=true;comboDisplay.getAnimations({subtree:true}).forEach(a=>a.cancel());}
+function showCombo(event){
+  if(event.type==='chainBreak'){clearCombo();return;}
+  comboDisplay.hidden=false;
+  document.getElementById('combo-caption').textContent=event.chain>1?event.chain+' HYPYN COMBO':'COMBO!';
+  document.getElementById('combo-multiplier').textContent='×'+event.multiplier;
+  document.getElementById('combo-bonus').textContent='+'+event.bonus+' BONUS';
+  comboDisplay.style.setProperty('--combo-color',event.multiplier>=4?'#ff79ef':'#bcff58');
+  comboDisplay.getAnimations({subtree:true}).forEach(a=>a.cancel());
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    comboDisplay.animate([{transform:'scale(.55) rotate(-9deg)',opacity:0},{transform:'scale(1.2) rotate(3deg)',opacity:1,offset:.35},{transform:'scale(.96) rotate(-1deg)',offset:.65},{transform:'scale(1)',opacity:1}],{duration:520,easing:'cubic-bezier(.2,.8,.2,1)'});
+    ui.score.animate([{transform:'scale(1)',color:'#fff'},{transform:'scale(1.3)',color:'#bcff58'},{transform:'scale(1)',color:'#fff'}],{duration:450});
+    document.querySelectorAll('#combo-sparks i').forEach((spark,i)=>{
+      const angle=i*Math.PI/6,dx=Math.cos(angle)*95,dy=Math.sin(angle)*66;
+      spark.animate([{transform:'translate(0,0) scale(0)',opacity:1},{opacity:1,offset:.2},{transform:'translate('+dx+'px,'+dy+'px) rotate(160deg) scale(.2)',opacity:0}],{duration:650+i*15,easing:'ease-out'});
+    });
+  }
+}
+for(let i=0;i<12;i++)document.getElementById('combo-sparks').appendChild(document.createElement('i'));
 function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`ENNÄTYS ${best}`;}
 function updateMapCarousel(){
   const count=KAARI_MAPS.length;
@@ -78,7 +98,7 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])mapTrack.ad
 for(const [id,direction] of [['map-prev',-1],['map-next',1]]){const button=document.getElementById(id);button.addEventListener('pointerup',e=>{if(e.button!==0)return;e.preventDefault();cycleMap(direction);});button.onclick=e=>{if(e.detail===0)cycleMap(direction);};}
 mapTrack.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();e.stopPropagation();cycleMap(e.code==='ArrowRight'?1:-1);}});
 function reset(mapIndex=game.mapIndex){
-  clearInput();game.reset(mapIndex);readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;
+  clearInput();clearCombo();game.reset(mapIndex);readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;
   if(touchMode)followMobilePlayer(0,true);
   updateMapCarousel();sync();
 }
@@ -95,9 +115,10 @@ function step(dt){
   particles.forEach(p=>{p.life-=dt;p.y-=24*dt;});particles=particles.filter(p=>p.life>0);
   game.step(dt,controls());ui['start-hint'].hidden=game.active;
   for(const event of game.events){
-    if(event.type==='finish'){
+    if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
+    }else if(event.type==='finish'){
       best=Math.max(best,game.score);try{localStorage.setItem('kaari-best-'+game.map.id,best);}catch{}
-      ui['result-label'].textContent=event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa · ennätys ${best}`;
+      ui['result-label'].textContent=event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa / paras combo ${game.maxChain} · ennätys ${best}`;
       if(event.crash){particles.push({x:event.crash.x,y:K_FLOOR-95,label:event.crash.sound,life:1.8});clearInput();ui.touch.hidden=true;}
     }else{const label=event.type==='flip'?`+250 ${event.label}`:event.type==='twist'?`+200 ${event.label}`:event.type==='combo'?`COMBO +150 · ${event.label}`:'+100';if(event.type==='combo')particles=[];particles.push({x:event.x,y:event.y-40,label,life:event.type==='combo'?2:1.5});if(event.type==='catch')trail=[];}
     sync();

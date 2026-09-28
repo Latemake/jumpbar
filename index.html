@@ -4,6 +4,7 @@
 <body data-screen="menu">
 <main id="app">
   <canvas id="game" tabindex="0" aria-label="Voimistelupeli"></canvas>
+  <div id="combo-display" hidden aria-live="polite"><span id="combo-caption">COMBO</span><strong id="combo-multiplier">&#215;2</strong><span id="combo-bonus"></span><div id="combo-sparks" aria-hidden="true"></div></div>
   <div id="effects" aria-hidden="true"></div>
   <div id="target-guide" hidden aria-hidden="true"></div>
   <section id="menu" class="screen">
@@ -18,7 +19,7 @@
       <div class="character-caption"><span id="character-counter">01 / 04</span><h1 id="character-name" aria-live="polite">Kipinä</h1><p id="character-style">Otsapanta</p></div>
       <button id="play" class="primary">PELAA <span>↗</span></button>
       <button id="help-toggle" class="text-button" aria-expanded="false">Miten pelataan? <span>＋</span></button>
-      <div id="help" hidden><div class="keyboard-help"><p><kbd>SPACE</kbd> Pidä ote · vapauta hypätäksesi</p><p><kbd>↓ / S</kbd> Pidä: kerään · vapauta: suoraksi</p><p><kbd>← / →</kbd> Ilmassa: vartalon kierto (myös A / D)</p><p><kbd>ESC</kbd> Tauko <kbd>R</kbd> Uusi yritys</p></div><div class="touch-help"><p><b>Oikea peukalo: OTE</b><br>Pidä pohjassa tarttuaksesi. Vapauta hypätäksesi.</p><p><b>Vasen peukalo: KERÄÄN</b><br>Pidä kerätäksesi vartalon. Vapauta suoristuaksesi.</p><p><b>↶ / ↷</b> Pidä kiertääksesi ilmassa. Yhdistä volttiin!</p><p>Voit painaa nappeja yhtä aikaa. Myös vaaka-asento toimii.</p></div><p>Kerään alhaalla, suoraksi ääriasennossa.</p></div>
+      <div id="help" hidden><div class="keyboard-help"><p><kbd>SPACE</kbd> Pidä ote · vapauta hypätäksesi</p><p><kbd>↓ / S</kbd> Pidä: kerään · vapauta: suoraksi</p><p><kbd>← / →</kbd> Ilmassa: vartalon kierto (myös A / D)</p><p><kbd>ESC</kbd> Tauko <kbd>R</kbd> Uusi yritys</p></div><div class="touch-help"><p><b>Oikea peukalo: OTE</b><br>Pidä pohjassa tarttuaksesi. Vapauta hypätäksesi.</p><p><b>Vasen peukalo: KERÄÄN</b><br>Pidä kerätäksesi vartalon. Vapauta suoristuaksesi.</p><p><b>↶ / ↷</b> Pidä kiertääksesi ilmassa. Yhdistä volttiin!</p><p>Voit painaa nappeja yhtä aikaa. Myös vaaka-asento toimii.</p></div><p>Temppu + uusi tanko = COMBO! Jatka temppyhypyill&#228;: kerroin kasvaa &#215;6 asti. Tavallinen hyppy tai vanha tanko katkaisee ketjun.</p><p>Kerään alhaalla, suoraksi ääriasennossa.</p></div>
     </div>
     <div class="map-picker"><div class="map-heading"><span>VALITSE RATA <span id="map-counter">01 / 06</span></span><span id="menu-best">ENNÄTYS 0</span></div>
       <div class="map-carousel" role="region" aria-label="Ratavalinta" aria-roledescription="karuselli">
