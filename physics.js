@@ -33,16 +33,18 @@ class GymnastRagdoll {
     // Both thighs flex toward the chest in body space. The shins fold back
     // toward the hips; neither leg mirrors to the other side of the body.
     const special=!bar?p.specialPose:null;
-    const thigh=special==='pike'?1.85:.025+2.12*t,shin=special==='pike'?1.85:.025-1.15*t;
+    const airTuck=!bar&&!p.onGround&&(p.bar===undefined||p.bar<0)&&(!special||special==='cannon');
+    const thigh=special==='pike'?1.85:.025+(airTuck?2.375:2.12)*t,shin=special==='pike'?1.85:.025-(airTuck?.205:1.15)*t;
     const knee=[25*Math.sin(thigh),4+25*Math.cos(thigh)];
     const foot=[knee[0]+25*Math.sin(shin),knee[1]+25*Math.cos(shin)];
     // In flight the hands fold towards the shins. A held bar keeps the grip
     // fixed instead; blend with tuck so opening the body also opens the arms.
     const fold=t*t*(3-2*t);
-    const hand=bar?[(bar.x-p.x)*c-(bar.y-p.y)*s,(bar.x-p.x)*s+(bar.y-p.y)*c]:special==='pike'?[36,-22]:special==='deathdive'?[20,-21]:special==='star'?[39,-40]:special==='candle'?[5,20]:[(knee[0]+2)*fold,-65+(knee[1]+69)*fold];
+    const shinGrip=airTuck?[knee[0]+(foot[0]-knee[0])*.22,knee[1]+(foot[1]-knee[1])*.22]:[knee[0]+2,knee[1]+4];
+    const hand=bar?[(bar.x-p.x)*c-(bar.y-p.y)*s,(bar.x-p.x)*s+(bar.y-p.y)*c]:special==='pike'?[36,-22]:special==='deathdive'?[20,-21]:special==='star'?[39,-40]:special==='candle'?[5,20]:[shinGrip[0]*fold,-65+(shinGrip[1]+65)*fold];
     const dx=hand[0],dy=hand[1]+21,d=Math.hypot(dx,dy)||1;
     const bend=Math.sqrt(Math.max(0,23*23-Math.min(d,46)**2/4));
-    const side=bar?(dy<=0?1:-1):-1;
+    const side=bar?(dy<=0?1:-1):airTuck?1:-1;
     const elbow=[dx/2-dy/d*bend*side,-21+dy/2+dx/d*bend*side];
     const local={hip:[0,4],chest:[0,-21],head:[0,-38],elbowL:elbow,elbowR:[...elbow],handL:hand,handR:[...hand],kneeL:knee,kneeR:[...knee],footL:foot,footR:[...foot]};
     if(special==='salute'){local.handR=[7,-42];local.elbowR=[25,-24];local.handL=[-8,18];local.elbowL=[-18,-4];}

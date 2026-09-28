@@ -64,13 +64,13 @@ test('landing assist forgives a tilted opening but not head-first falls or skipp
   assert.equal(fall(Math.PI).success,false);
   assert.equal(fall(.75,false).success,false);
 });
-test('both knees tuck toward the chest and heels fold back at every body rotation',()=>{
+test('air tuck lifts both knees to the chest with shins hanging below at every rotation',()=>{
   for(const angle of [0,.8,-1.4,Math.PI,4.7]){
     const p={x:300,y:200,angle,tuck:1},doll=new GymnastRagdoll(p);
     for(let i=0;i<120;i++)doll.step(dt,p,null);
     const hip=doll.joints.hip;
     const local=q=>({x:(q.x-hip.x)*Math.cos(angle)-(q.y-hip.y)*Math.sin(angle),y:(q.x-hip.x)*Math.sin(angle)+(q.y-hip.y)*Math.cos(angle)});
-    for(const side of ['L','R']){const knee=local(doll.joints['knee'+side]),foot=local(doll.joints['foot'+side]);assert.ok(knee.x>15,'knee on front side');assert.ok(knee.y<-8,'knee lifted toward chest');assert.ok(foot.x<knee.x-15,'heel folds back');}
+    for(const side of ['L','R']){const knee=local(doll.joints['knee'+side]),foot=local(doll.joints['foot'+side]);assert.ok(knee.x>15,'knee on front side');assert.ok(knee.y<-8,'knee lifted toward chest');assert.ok(Math.abs(foot.x-knee.x)<8,'shins stay under the knees');assert.ok(foot.y>knee.y+18,'feet hang below the knees');}
     assert.ok(Math.hypot(doll.joints.kneeL.x-doll.joints.kneeR.x,doll.joints.kneeL.y-doll.joints.kneeR.y)<2,'legs stay together');
   }
 });
