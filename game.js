@@ -63,7 +63,7 @@ function held(code){return keys.has(code)||touchKeys.has(code);}
 function controls(){return{grab:held('ArrowUp'),bomb:held('KeyB')&&game.characterId==='bruno',dive:held('KeyF')&&campaign.trickUnlocked('deathdive'),special:held('KeyE'),grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
 function clearInput(){if(game.grounded){game.groundHeld=false;game.groundCharge=0;}keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
 function setScreen(next){
-  screen=next;document.body.dataset.screen=next;clearInput();
+  if(next!==screen)sound.stop();screen=next;document.body.dataset.screen=next;clearInput();
   document.getElementById('target-guide').hidden=true;
   for(const name of ['menu','pause','result','guide'])ui[name].hidden=next!==name;
   ui.hud.hidden=!['play','pause','result'].includes(next);ui.touch.hidden=next!=='play';
@@ -119,7 +119,7 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])mapTrack.ad
 for(const [id,direction] of [['map-prev',-1],['map-next',1]]){const button=document.getElementById(id);button.addEventListener('pointerup',e=>{if(e.button!==0)return;e.preventDefault();cycleMap(direction);});button.onclick=e=>{if(e.detail===0)cycleMap(direction);};}
 mapTrack.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();e.stopPropagation();cycleMap(e.code==='ArrowRight'?1:-1);}});
 function reset(mapIndex=game.mapIndex){
-  clearInput();clearCombo();game.reset(mapIndex);game.characterId=campaign.data.equipped;game.deathDiveUnlocked=campaign.trickUnlocked('deathdive');document.querySelector('[data-key=KeyB]').hidden=game.characterId!=='bruno';document.querySelector('[data-key=KeyF]').hidden=!game.deathDiveUnlocked;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
+  sound.stop();clearInput();clearCombo();game.reset(mapIndex);game.characterId=campaign.data.equipped;game.deathDiveUnlocked=campaign.trickUnlocked('deathdive');document.querySelector('[data-key=KeyB]').hidden=game.characterId!=='bruno';document.querySelector('[data-key=KeyF]').hidden=!game.deathDiveUnlocked;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
   if(touchMode)followMobilePlayer(0,true);
   updateMapCarousel();sync();
 }
@@ -134,9 +134,10 @@ function step(dt){
   }
   if(screen!=='play')return;
   particles.forEach(p=>{p.life-=dt;p.y-=24*dt;});particles=particles.filter(p=>p.life>0);
-  game.step(dt,controls());ui['start-hint'].hidden=game.active&&!game.grounded;if(game.grounded)ui['start-hint'].textContent='TUCK → RELEASE · bounce back to the bar';
+  game.step(dt,controls());sound.update(game,dt);ui['start-hint'].hidden=game.active&&!game.grounded;if(game.grounded)ui['start-hint'].textContent='TUCK → RELEASE · bounce back to the bar';
   document.querySelector('.special-control').classList.toggle('spent',game.specialAwarded);
   for(const event of game.events){
+    sound.event(event,game);
     if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
     }else if(event.type==='finish'){
       const reward=campaign.claim(game);saveCampaign();readBest();

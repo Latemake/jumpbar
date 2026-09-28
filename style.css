@@ -81,3 +81,5 @@ body[data-touch=true] .touch .twist-controls .bomb-control{left:0}body[data-touc
 body[data-touch=true] #start-hint{bottom:calc(185px + env(safe-area-inset-bottom))}
 
 body[data-touch=true] .touch .twist-controls .grab-control{position:absolute;bottom:56px;left:0;width:48px;height:44px;font-size:8px}body[data-touch=true] .touch .twist-controls .special-control{left:auto;right:0;width:48px}
+
+.sound-settings{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 20px}.sound-settings label{display:grid;gap:7px;font-size:10px;letter-spacing:1px}.sound-settings input{width:150px;accent-color:#deff69}.menu-wallet .sound-toggle{font-size:22px}
