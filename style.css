@@ -30,3 +30,13 @@ body[data-screen=menu] #menu{display:grid;grid-template-rows:54px minmax(0,1fr) 
 body:not([data-screen="play"]) #combo-display{display:none}
 @media(max-width:600px){#combo-display{top:max(85px,calc(env(safe-area-inset-top) + 70px))}#combo-multiplier{font-size:52px}}
 @media(max-height:500px){#combo-display{top:14px;left:calc(50% - 95px)}#combo-multiplier{font-size:40px}#combo-caption{font-size:10px}#combo-bonus{margin-top:3px;padding:4px 9px}}
+/* Quiet, translucent touch controls with full-size thumb targets. */
+body[data-touch=true] .touch{left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));align-items:flex-end;gap:12px}
+body[data-touch=true] .touch button,body[data-touch=true] .touch .twist-controls button{width:72px;height:72px;min-width:0;flex-shrink:0;padding:0;border-radius:7px;border:1px solid #ffffff30;background:#15202c1a;backdrop-filter:none;box-shadow:none;color:#ffffffa6;text-shadow:0 1px 3px #15202c55;gap:0;transform:none;transition:background .12s,border-color .12s,color .12s}
+body[data-touch=true] .touch button[data-key=Space]{border-color:#ffffff30}
+body[data-touch=true] .touch strong{font-size:11px;font-weight:500;letter-spacing:1px}
+body[data-touch=true] .touch .control-symbol,body[data-touch=true] .touch small{display:none}
+body[data-touch=true] .touch .twist-controls{position:static;transform:none;align-self:center;margin:0;gap:8px}
+body[data-touch=true] .touch .twist-controls button{width:48px;height:48px;font-size:24px;font-weight:400}
+body[data-touch=true] .touch button.pressed{background:#ffffff2e;border-color:#ffffff80;color:#fffffff2;box-shadow:none;transform:none}
+body[data-touch=true] #start-hint{bottom:calc(104px + env(safe-area-inset-bottom));background:#15202c26;backdrop-filter:none;border-radius:5px;color:#ffffffb3;font-size:10px;padding:7px 10px}
