@@ -8,7 +8,7 @@ const JUMPBAR_CHAPTERS=[
   {map:5,title:'6 · The Final Summit',goal:3200,reward:200,story:'The alpine finale. Put everything you have learned together.'}
 ];
 const JUMPBAR_TRICKS=[
-  {id:'grab',name:'Grab',owners:[],points:'150',keys:'GRAB / ↑',how:'Hold UP or GRAB for 0.35 s in the air. Grab one foot and extend your free arm for balance. Release before landing. Scores once per jump.',unlock:'Available to every character from the start.',demo:'grab',tutorial:true},
+  {id:'grab',name:'Grab',owners:[],points:'150',keys:'GRAB / ↑',how:'Hold UP or GRAB for 0.35 s in the air. Bend both knees behind you, hold your ankles and arch your chest forward. Release before landing. Scores once per jump.',unlock:'Available to every character from the start.',demo:'grab',tutorial:true},
   {id:'backflip',name:'Backflip',owners:[],points:'250 per turn',keys:'TUCK / ↓',how:'Launch while rotating backwards. Hold TUCK to spin faster; release it to prepare your landing.',unlock:'Available from the start.',demo:'flip'},
   {id:'frontflip',name:'Frontflip',owners:[],points:'250 per turn',keys:'TUCK / ↓',how:'Release on the opposite swing to rotate forwards. Tuck for speed, then open before landing.',unlock:'Available from the start.',demo:'frontflip'},
   {id:'twist',name:'360° twist',owners:[],points:'200 per turn',keys:'↶ / ↷ · A / D',how:'Hold a twist arrow in the air for a full turn. Release to brake. Combine it with a flip for +150.',unlock:'Available from the start.',demo:'twist'},

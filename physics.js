@@ -47,10 +47,13 @@ class GymnastRagdoll {
     const local={hip:[0,4],chest:[0,-21],head:[0,-38],elbowL:elbow,elbowR:[...elbow],handL:hand,handR:[...hand],kneeL:knee,kneeR:[...knee],footL:foot,footR:[...foot]};
     if(special==='salute'){local.handR=[7,-42];local.elbowR=[25,-24];local.handL=[-8,18];local.elbowL=[-18,-4];}
     if(special==='grab'){
-      local.kneeR=[24,-3];local.footR=[4,12];local.handR=[4,12];
-      const dx=4,dy=33,d=Math.hypot(dx,dy),bend=Math.sqrt(23*23-d*d/4);
-      local.elbowR=[dx/2+dy/d*bend,-21+dy/2-dx/d*bend];
-      local.handL=[-30,-30];local.elbowL=[-18,-37];
+      // Heel grab: both knees fold behind the hips, chest forward, hands at ankles.
+      local.chest=[5,4-Math.sqrt(25*25-5*5)];
+      local.head=[-1,local.chest[1]-Math.sqrt(17*17-6*6)];
+      const knee=[-3,4+Math.sqrt(25*25-3*3)],ankle=[-23,knee[1]-15];
+      const dx=ankle[0]-local.chest[0],dy=ankle[1]-local.chest[1],d=Math.hypot(dx,dy),bend=Math.sqrt(23*23-d*d/4);
+      const elbow=[local.chest[0]+dx/2-dy/d*bend,local.chest[1]+dy/2+dx/d*bend];
+      for(const side of ['L','R']){local['knee'+side]=[...knee];local['foot'+side]=[...ankle];local['hand'+side]=[...ankle];local['elbow'+side]=[...elbow];}
     }
     if(p.onGround){
       // Reach forward to counter the hip moving back during impact compression.

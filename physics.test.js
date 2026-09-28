@@ -276,10 +276,10 @@ test('water impact scales with speed and mass and preserves visible underwater m
  for(const g of [low,high,heavy,light]){const y=g.player.y,score=g.score;for(let i=0;i<240;i++)g.step(dt,{bomb:true,twist:1});assert.ok(g.player.y>y);assert.ok(g.player.y>K_FLOOR);assert.ok(g.player.y<K_FLOOR+250);assert.equal(g.score,score);for(const j of Object.values(g.ragdoll.joints))assert.ok(Number.isFinite(j.x+j.y));g.reset();assert.equal(g.splash,null);}
 });
 
-test('grab holds one foot, keeps the other hand free, and awards once per flight',()=>{
+test('grab holds both ankles behind the body and awards once per flight',()=>{
  const g=new KaariPhysics();g.active=true;Object.assign(g.player,{bar:-1,x:600,y:-400,vx:0,vy:-100,angle:0,momentum:0});g.ragdoll.reset(g.player);
  for(let i=0;i<65;i++)g.step(dt,{grab:true});assert.equal(g.grabAwarded,true);assert.equal(g.player.specialPose,'grab');
- const j=g.ragdoll.joints;assert.ok(Math.hypot(j.handR.x-j.footR.x,j.handR.y-j.footR.y)<12);assert.ok(Math.hypot(j.handL.x-j.footR.x,j.handL.y-j.footR.y)>25);
+ const j=g.ragdoll.joints;assert.ok(Math.hypot(j.handR.x-j.footR.x,j.handR.y-j.footR.y)<12);assert.ok(Math.hypot(j.handL.x-j.footL.x,j.handL.y-j.footL.y)<12);assert.ok(j.footR.x<j.hip.x-15);assert.ok(j.footR.y<j.kneeR.y-10);
  assert.equal(g.events.filter(e=>e.label==='GRAB').length,1);g.step(dt,{});assert.equal(g.player.specialPose,null);
  g.reset();g.active=true;for(let i=0;i<60;i++)g.step(dt,{grip:true,grab:true});assert.equal(g.grabAwarded,false);assert.equal(g.score,0);
 });
