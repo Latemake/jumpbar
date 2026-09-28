@@ -23,10 +23,13 @@ class GymnastRagdoll {
     const thigh=.025+2.12*t,shin=.025-1.15*t;
     const knee=[25*Math.sin(thigh),4+25*Math.cos(thigh)];
     const foot=[knee[0]+25*Math.sin(shin),knee[1]+25*Math.cos(shin)];
-    const hand=bar?[(bar.x-p.x)*c-(bar.y-p.y)*s,(bar.x-p.x)*s+(bar.y-p.y)*c]:[0,-65];
+    // In flight the hands fold towards the shins. A held bar keeps the grip
+    // fixed instead; blend with tuck so opening the body also opens the arms.
+    const fold=t*t*(3-2*t);
+    const hand=bar?[(bar.x-p.x)*c-(bar.y-p.y)*s,(bar.x-p.x)*s+(bar.y-p.y)*c]:[(knee[0]+2)*fold,-65+(knee[1]+69)*fold];
     const dx=hand[0],dy=hand[1]+21,d=Math.hypot(dx,dy)||1;
     const bend=Math.sqrt(Math.max(0,23*23-Math.min(d,46)**2/4));
-    const side=dy<=0?1:-1;
+    const side=bar?(dy<=0?1:-1):-1;
     const elbow=[dx/2-dy/d*bend*side,-21+dy/2+dx/d*bend*side];
     const local={hip:[0,4],chest:[0,-21],head:[0,-38],elbowL:elbow,elbowR:[...elbow],handL:hand,handR:[...hand],kneeL:knee,kneeR:[...knee],footL:foot,footR:[...foot]};
     return Object.fromEntries(Object.entries(local).map(([id,[x,y]])=>[id,{x:p.x+x*c+y*s,y:p.y-x*s+y*c}]));
@@ -150,7 +153,8 @@ class KaariPhysics {
       if(twists>this.twistTurns){this.flightPoints+=200*(twists-this.twistTurns);this.score+=200*(twists-this.twistTurns);this.twistTurns=twists;this.events.push({type:'twist',label:`${twists*360}°`,x:p.x,y:p.y});}
       if(this.turns>0&&this.twistTurns>0&&!this.comboAwarded){this.comboAwarded=true;this.flightPoints+=150;this.score+=150;this.events.push({type:'combo',label:`${this.airRotation>0?'BACKFLIP':'FRONTFLIP'} ${this.twistTurns*360}°`,x:p.x,y:p.y-25});}
       if(input.grip&&p.cooldown<=0){
-        const hand=this.ragdoll.pose(p).handR;
+        // Grip input reaches for the bar even while the aerial pose is tucked.
+        const hand=this.ragdoll.pose({...p,tuck:0}).handR;
         for(let i=0;i<this.bars.length;i++){
           const b=this.bars[i];if(Math.hypot(hand.x-b.x,hand.y-b.y)>42)continue;
           p.angle=Math.atan2(p.x-b.x,p.y-b.y);p.omega=(p.vx*Math.cos(p.angle)-p.vy*Math.sin(p.angle))/p.radius;p.bar=i;p.twist=0;p.twistSpeed=0;p.x=b.x+Math.sin(p.angle)*p.radius;p.y=b.y+Math.cos(p.angle)*p.radius;

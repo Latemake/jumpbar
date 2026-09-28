@@ -163,3 +163,19 @@ test('combo chains reward consecutive trick transfers, cap at x6 and reject repe
   assert.equal(g.events.at(-1).multiplier,6);assert.equal(g.events.at(-1).bonus,1250);
   g.flightPoints=200;const before=g.score;g.finish(true);assert.equal(g.score-before,1500);
 });
+
+test('air tuck folds hands to shins with bent elbows while bar tuck retains grip',()=>{
+  for(const angle of [0,.8,-1.4,Math.PI,4.7]){
+    const p={x:300,y:150,angle,tuck:1},doll=new GymnastRagdoll(p);
+    for(let i=0;i<90;i++)doll.step(dt,p,null);
+    const j=doll.joints;
+    assert.ok(Math.hypot(j.handR.x-j.kneeR.x,j.handR.y-j.kneeR.y)<12);
+    assert.ok(Math.hypot(j.handR.x-j.chest.x,j.handR.y-j.chest.y)<32);
+    const bar={x:p.x-Math.sin(angle)*50,y:p.y-Math.cos(angle)*50};
+    for(let i=0;i<90;i++)doll.step(dt,p,bar);
+    assert.ok(Math.hypot(doll.joints.handR.x-bar.x,doll.joints.handR.y-bar.y)<.01);
+    p.tuck=0;
+    for(let i=0;i<90;i++)doll.step(dt,p,null);
+    assert.ok(Math.hypot(doll.joints.handR.x-doll.joints.chest.x,doll.joints.handR.y-doll.joints.chest.y)>40);
+  }
+});
