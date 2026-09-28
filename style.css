@@ -83,3 +83,36 @@ body[data-touch=true] #start-hint{bottom:calc(185px + env(safe-area-inset-bottom
 body[data-touch=true] .touch .twist-controls .grab-control{position:absolute;bottom:56px;left:0;width:48px;height:44px;font-size:8px}body[data-touch=true] .touch .twist-controls .special-control{left:auto;right:0;width:48px}
 
 .sound-settings{display:flex;align-items:center;justify-content:center;gap:12px;margin:0 0 20px}.sound-settings label{display:grid;gap:7px;font-size:10px;letter-spacing:1px}.sound-settings input{width:150px;accent-color:#deff69}.menu-wallet .sound-toggle{font-size:22px}
+/* Touch controls: two spaced rows, with primary actions at the thumb corners. */
+#app,#app *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#game{touch-action:none}
+body[data-touch=true] #touch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:64px 84px;gap:12px;left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));align-items:stretch;touch-action:none}
+body[data-touch=true] #touch .twist-controls{display:contents}
+body[data-touch=true] #touch button,body[data-touch=true] #touch .twist-controls button{position:static;inset:auto;width:100%;height:100%;min-width:0;min-height:60px;padding:0;border-radius:12px;border:1px solid #ffffff52;background:#1a29452b;backdrop-filter:blur(4px);color:#ffffffe0;font-size:12px;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 0 #ffffff16;touch-action:none}
+body[data-touch=true] #touch button strong{font-size:14px;letter-spacing:.7px}
+body[data-touch=true] #touch small,body[data-touch=true] #touch .control-symbol{display:none}
+body[data-touch=true] #touch [data-key=ArrowDown]{grid-row:2;grid-column:1}
+body[data-touch=true] #touch [data-key=Space]{grid-row:2;grid-column:4}
+body[data-touch=true] #touch [data-key=ArrowLeft]{grid-row:2;grid-column:2;font-size:30px}
+body[data-touch=true] #touch [data-key=ArrowRight]{grid-row:2;grid-column:3;font-size:30px}
+body[data-touch=true] #touch [data-key=ArrowUp]{grid-row:1;grid-column:1}
+body[data-touch=true] #touch [data-key=KeyE]{grid-row:1;grid-column:2}
+body[data-touch=true] #touch [data-key=KeyB]{grid-row:1;grid-column:3}
+body[data-touch=true] #touch [data-key=KeyF]{grid-row:1;grid-column:4}
+body[data-touch=true] #touch button.pressed{background:#ddff694d;border-color:#e4ff88;color:#fff;transform:scale(.96);box-shadow:0 0 0 2px #deff6926}
+body[data-touch=true] #start-hint{bottom:calc(190px + env(safe-area-inset-bottom));max-width:calc(100% - 32px);white-space:normal;text-align:center;pointer-events:none}
+@media(orientation:landscape){
+ body[data-touch=true] #touch{grid-template-columns:1.25fr repeat(6,minmax(0,1fr)) 1.25fr;grid-template-rows:68px;gap:10px;left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom))}
+ body[data-touch=true] #touch button,body[data-touch=true] #touch .twist-controls button{grid-row:1;font-size:11px}
+ body[data-touch=true] #touch [data-key=ArrowDown]{grid-column:1}
+ body[data-touch=true] #touch [data-key=ArrowLeft]{grid-column:2;font-size:28px}
+ body[data-touch=true] #touch [data-key=ArrowUp]{grid-column:3}
+ body[data-touch=true] #touch [data-key=KeyE]{grid-column:4}
+ body[data-touch=true] #touch [data-key=KeyB]{grid-column:5}
+ body[data-touch=true] #touch [data-key=KeyF]{grid-column:6}
+ body[data-touch=true] #touch [data-key=ArrowRight]{grid-column:7;font-size:28px}
+ body[data-touch=true] #touch [data-key=Space]{grid-column:8}
+ body[data-touch=true] #start-hint{bottom:calc(94px + env(safe-area-inset-bottom))}
+}
+body[data-touch=true] #touch .twist-controls [data-key=ArrowLeft],body[data-touch=true] #touch .twist-controls [data-key=ArrowRight]{font-size:30px;font-weight:500}
+@media(orientation:landscape){body[data-touch=true] #touch [data-key]{grid-row:1}}

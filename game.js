@@ -189,7 +189,7 @@ document.getElementById('resume').onclick=resume;
 canvas.addEventListener('pointerdown',()=>{if(screen==='play')canvas.focus();});
 document.querySelectorAll('[data-key]').forEach(button=>{
   button.addEventListener('contextmenu',e=>e.preventDefault());
-  button.addEventListener('pointerdown',e=>{if(screen!=='play')return;e.preventDefault();button.setPointerCapture(e.pointerId);touchPointers.set(e.pointerId,button.dataset.key);touchKeys.add(button.dataset.key);button.classList.add('pressed');button.setAttribute('aria-pressed','true');});
+  button.addEventListener('pointerdown',e=>{if(screen!=='play')return;e.preventDefault();window.getSelection()?.removeAllRanges();button.setPointerCapture(e.pointerId);touchPointers.set(e.pointerId,button.dataset.key);touchKeys.add(button.dataset.key);button.classList.add('pressed');button.setAttribute('aria-pressed','true');});
   const up=e=>{
     if(!touchPointers.has(e.pointerId))return;
     touchPointers.delete(e.pointerId);
@@ -200,6 +200,7 @@ document.querySelectorAll('[data-key]').forEach(button=>{
   button.addEventListener('pointerup',up);button.addEventListener('pointercancel',up);button.addEventListener('lostpointercapture',up);
 });
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
+for(const type of ['selectstart','contextmenu','dragstart'])document.getElementById('app').addEventListener(type,e=>{if(screen==='play')e.preventDefault();});
 window.addEventListener('orientationchange',pause);
 window.visualViewport?.addEventListener('resize',resize);
 
