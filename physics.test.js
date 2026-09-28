@@ -140,11 +140,11 @@ test('a fall leaves a finite, connected ragdoll above the floor',()=>{
 });
 test('map changes clear score, progress, fall state and momentum',()=>{
   const game=new KaariPhysics();pump(game,500);game.score=500;game.finish(false);game.reset(2);
-  assert.equal(game.bars.length,8);assert.equal(game.visited.size,1);assert.equal(game.score,0);assert.equal(game.player.omega,0);assert.equal(game.ended,false);assert.equal(game.ragdoll.fallen,false);
+  assert.equal(game.bars.length,2);assert.equal(game.visited.size,1);assert.equal(game.score,0);assert.equal(game.player.omega,0);assert.equal(game.ended,false);assert.equal(game.ragdoll.fallen,false);
 });
 
 test('combo chains reward consecutive trick transfers, cap at x6 and reject repeat bars',()=>{
-  const g=new KaariPhysics(5);g.active=true;
+  const g=new KaariPhysics(3);g.active=true;
   function catchBar(index,points){
     Object.assign(g.player,{bar:-1,x:g.bars[index].x,y:g.bars[index].y+76,angle:0,twist:0,twistSpeed:0,vx:0,vy:0,momentum:0,tuck:0,cooldown:0});
     g.airRotation=0;g.turns=0;g.twistTurns=0;g.flightPoints=points;
@@ -177,5 +177,27 @@ test('air tuck folds hands to shins with bent elbows while bar tuck retains grip
     p.tuck=0;
     for(let i=0;i<90;i++)doll.step(dt,p,null);
     assert.ok(Math.hypot(doll.joints.handR.x-doll.joints.chest.x,doll.joints.handR.y-doll.joints.chest.y)>40);
+  }
+});
+
+test('two bar courses and four water courses with forgiving entries and clean-dive bonuses',()=>{
+  assert.equal(KAARI_MAPS.filter(m=>m.mode!=='dive').length,2);
+  assert.equal(KAARI_MAPS.filter(m=>m.mode==='dive').length,4);
+  for(const [index,map] of KAARI_MAPS.entries())if(map.mode==='dive'){
+    for(const angle of [0,Math.PI,Math.PI/2]){
+      const g=new KaariPhysics(index);g.active=true;g.visited=new Set([0,1]);
+      Object.assign(g.player,{bar:-1,x:g.mat.x+180,y:K_FLOOR-70,angle,tuck:0,vx:0,vy:180,momentum:0});g.ragdoll.reset(g.player);
+      for(let i=0;i<120&&!g.ended;i++)g.step(dt);
+      assert.equal(g.success,true);assert.ok(g.splash);assert.equal(g.crash,null);
+      assert.equal(g.splash.clean,angle!==Math.PI/2);assert.equal(g.score,angle===Math.PI/2?500:700);
+      const score=g.score;for(let i=0;i<240;i++)g.step(dt);assert.equal(g.score,score);
+      g.reset();assert.equal(g.splash,null);assert.equal(g.ended,false);
+    }
+    for(const missedBar of [false,true]){
+      const g=new KaariPhysics(index);g.active=true;if(!missedBar)g.visited=new Set([0,1]);
+      Object.assign(g.player,{bar:-1,x:missedBar?g.mat.x+180:200,y:missedBar?K_FLOOR-65:g.cliffY-65,angle:0,tuck:0,vx:0,vy:100,momentum:0});g.ragdoll.reset(g.player);
+      for(let i=0;i<120&&!g.ended;i++)g.step(dt);
+      assert.equal(g.success,false);assert.equal(g.ended,true);
+    }
   }
 });

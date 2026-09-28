@@ -118,13 +118,14 @@ function step(dt){
     if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
     }else if(event.type==='finish'){
       best=Math.max(best,game.score);try{localStorage.setItem('kaari-best-'+game.map.id,best);}catch{}
-      ui['result-label'].textContent=event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa / paras combo ${game.maxChain} · ennätys ${best}`;
+      ui['result-label'].textContent=event.splash?(!event.success?'KÄY MOLEMMILLA TANGOILLA':event.splash.clean?'SIISTI VESIHYPPY +200':'LOISKAUS!'):event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'LOISKIS!':'TANKO PUUTTUU!'):event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa / paras combo ${game.maxChain} · ennätys ${best}`;
+      if(event.splash){particles.push({x:event.splash.x,y:K_FLOOR-60,label:!event.success?'SPLASH!':event.splash.clean?'+700 SPLASH!':'+500 SPLASH!',life:1.6});clearInput();ui.touch.hidden=true;}
       if(event.crash){particles.push({x:event.crash.x,y:K_FLOOR-95,label:event.crash.sound,life:1.8});clearInput();ui.touch.hidden=true;}
     }else{const label=event.type==='flip'?`+250 ${event.label}`:event.type==='twist'?`+200 ${event.label}`:event.type==='combo'?`COMBO +150 · ${event.label}`:'+100';if(event.type==='combo')particles=[];particles.push({x:event.x,y:event.y-40,label,life:event.type==='combo'?2:1.5});if(event.type==='catch')trail=[];}
     sync();
   }
   game.events=[];
-  if(game.ended&&game.elapsedAfterEnd>(game.crash?game.crash.duration:1.1))setScreen('result');
+  if(game.ended&&game.elapsedAfterEnd>(game.splash?game.splash.duration:game.crash?game.crash.duration:1.1))setScreen('result');
   const p=game.player;
   if(p.bar<0&&!game.ended){trail.push({x:p.x,y:p.y});if(trail.length>30)trail.shift();}
   if(touchMode){followMobilePlayer(dt);return;}

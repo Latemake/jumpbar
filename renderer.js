@@ -17,6 +17,7 @@ class KaariRenderer {
     this.scene=new THREE.Scene();this.camera=new THREE.OrthographicCamera(-400,400,240,-240,.1,4500);
     this.sphere=new THREE.SphereGeometry(1,20,14);this.cylinder=new THREE.CylinderGeometry(1,1,1,14);this.box=new THREE.BoxGeometry(1,1,1);
     this.mountainGeometry=new THREE.ConeGeometry(1,1,6);
+    this.rockGeometry=new THREE.DodecahedronGeometry(1,0);
     this.up=new THREE.Vector3(0,1,0);this.mapIndex=-1;
     this.hemi=new THREE.HemisphereLight('#edfaff','#607659',2.5);this.scene.add(this.hemi);
     this.sun=new THREE.DirectionalLight('#fff1d5',3.4);this.sun.castShadow=true;this.sun.shadow.mapSize.set(this.mobile?1024:2048,this.mobile?1024:2048);
@@ -188,12 +189,89 @@ class KaariRenderer {
       for(let i=0;i<8;i++){this.ball(i*180+80,7,-95,22,roof,this.world,1,.5,.5);}
     }
   }
+  buildDiveMap(game,length){
+    const warm=game.map.id==='sunset',alpine=game.map.id==='alpine',islands=game.map.id==='harbor';
+    this.landmarkKind=game.map.id;
+    const rock=this.material(warm?'#b66d46':alpine?'#738899':'#81918a'),lightRock=this.material(warm?'#e4a36d':'#b3b7a1');
+    const grass=this.material(alpine?'#aac5b3':islands?'#5a9566':'#83ba75');
+    const water=this.material(warm?'#369fa7':alpine?'#237eaa':'#16b9bd',.18,.3),foam=this.material('#c7fff0',.4);
+    const edge=game.mat.x;
+    // The actual takeoff cliff ends at the water boundary, with layered rock
+    // faces down to the lake and an open foreground for the flight path.
+    this.block((edge-900)/2,73,0,edge+900,210,180,rock);
+    this.block((edge-900)/2,178,0,edge+900,5,180,grass);
+    for(let i=0;i<16;i++){
+      const x=-650+i*65;
+      if(x>edge-20)continue;
+      const stone=this.mesh(this.rockGeometry,i%2?rock:lightRock);
+      stone.position.set(x,75,72);stone.scale.set(49,95+(i%3)*5,35);stone.rotation.y=i;
+      for(let k=0;k<3;k++)this.block(x,25+k*52+(i%2)*8,91,59,3,2,lightRock);
+    }
+    this.block(edge+game.mat.w/2,-25,-280,game.mat.w+1400,45,3200,water);
+    this.waterStreaks=[];
+    for(let i=0;i<65;i++){
+      const x=edge+40+(i*137)%(game.mat.w+400),z=-650+(i*97)%1050;
+      const m=this.block(x,-1+(i%3)*.2,z,12+(i%5)*12,.3,1.5,foam);m.userData.baseX=x;this.waterStreaks.push(m);
+    }
+    // Separate silhouettes for the four destinations: sandstone arches,
+    // forested islands, alpine peaks, and a tropical limestone cove.
+    for(let i=0;i<11;i++){
+      const x=-400+i*210,z=-480-(i%3)*120,h=alpine?320+(i%4)*110:110+(i%4)*45;
+      const peak=this.mesh(alpine?this.mountainGeometry:this.rockGeometry,i%2?rock:lightRock);peak.position.set(x,h/2-20,z);peak.scale.set(alpine?160:110,alpine?h:h*.65,130);peak.rotation.y=i*.7;
+      if(alpine){const cap=this.mesh(this.mountainGeometry,this.material('#e8f3f5'));cap.position.set(x,h*.82-20,z);cap.scale.set(58,h*.36,47);cap.rotation.y=peak.rotation.y;}
+      else if(!warm){for(let k=0;k<4;k++)this.ball(x-48+k*30,h*.87-22+(k%2)*10,z,30,grass,this.world,1.2,.65,1);}
+    }
+    if(warm){
+      for(const x of [660,1270]){
+        this.rod([x,0,-300],[x,215,-300],33,rock);this.rod([x+155,0,-300],[x+155,215,-300],36,rock);
+        this.ball(x+78,210,-300,95,lightRock,this.world,1.3,.32,.45);
+      }
+      this.ball(1050,510,-1200,92,this.material('#ffda8b'),this.world);
+    }else if(alpine){
+      const pineMat=this.material('#397e73');
+      for(let i=0;i<16;i++){const x=i*105-250,z=-490;this.ball(x,-5,z,75,rock,this.world,1,.35,.8);this.rod([x,8,z],[x,70,z],4,rock);for(let k=0;k<3;k++){const pine=this.mesh(this.mountainGeometry,pineMat);pine.position.set(x,35+k*20,z);pine.scale.set(25-k*5,45,25-k*5);}}
+    }else{
+      for(let i=0;i<6;i++)this.makeTree(-340+i*110,-95,220+(i%2)*35,islands?'garden':'coast');
+      if(islands){
+        const wood=this.material('#b78255');for(let i=0;i<16;i++)this.block(edge+680+i*13,12,-140,11,5,85,wood);
+        for(const x of [edge+690,edge+850])this.rod([x,-20,-120],[x,20,-120],4,wood);
+        this.ball(edge+530,4,-220,35,this.material('#f3b658'),this.world,2,.22,.5);
+      }else{
+        const sand=this.material('#f4d6a0');this.ball(edge+800,-5,-310,200,sand,this.world,2,.15,1);
+        for(let i=0;i<4;i++)this.makeTree(edge+630+i*90,-380,150,'coast');
+      }
+    }
+    if(alpine||game.map.id==='coast'){
+      const x=edge+440,z=-410,fallMat=this.material('#b8f0ed',.2);
+      const cliff=this.mesh(this.rockGeometry,rock);cliff.position.set(x,80,z-25);cliff.scale.set(65,125,55);
+      this.block(x,92,z+25,19,182,3,fallMat);
+      this.block(x+5,88,z+28,5,174,2,foam);
+      for(let i=0;i<6;i++)this.ball(x-22+i*9,3,z+25,11,foam,this.world,1,.3,1);
+    }
+    // Shore foam marks where the safe water begins.
+    for(let i=0;i<9;i++)this.ball(edge+10,0,-75+i*20,14,foam,this.world,.7,.07,1);
+    this.splashGroup=new THREE.Group();this.world.add(this.splashGroup);this.splashGroup.visible=false;
+    this.splashDrops=[];for(let i=0;i<24;i++)this.splashDrops.push(this.ball(0,0,0,3+i%3,foam,this.splashGroup));
+    if(!this.rippleGeometry)this.rippleGeometry=new THREE.TorusGeometry(1,.018,5,48);
+    this.ripples=[];for(let i=0;i<3;i++){const ring=this.mesh(this.rippleGeometry,foam,this.splashGroup);ring.rotation.x=Math.PI/2;this.ripples.push(ring);}
+  }
+  drawWater(game,time){
+    if(!game.water)return;
+    this.waterStreaks.forEach((m,i)=>{m.position.x=m.userData.baseX+Math.sin(time*.65+i)*9;m.scale.x=(12+(i%5)*12)*(1+Math.sin(time+i)*.15);});
+    this.splashGroup.visible=!!game.splash;
+    if(!game.splash)return;
+    const t=game.elapsedAfterEnd;this.splashGroup.position.x=game.splash.x;
+    this.splashDrops.forEach((m,i)=>{const a=i*2.4,v=38+(i%5)*13;m.position.set(Math.cos(a)*t*v,Math.max(0,t*(120+(i%4)*22)-120*t*t),Math.sin(a)*t*v*.7);m.scale.setScalar(Math.max(0,1-t/1.5)*(3+i%3));});
+    this.ripples.forEach((m,i)=>{const size=8+Math.max(0,t-i*.16)*90;m.scale.setScalar(size);m.position.y=.5+i*.1;m.visible=t>i*.16;});
+  }
   buildMap(game){
     this.clearWorld();this.mapIndex=game.mapIndex;const coast=this.mapIndex===1,sunset=this.mapIndex===2;
     const sky=this.mapIndex>2?game.map.colors[0]:sunset?'#eea9a4':coast?'#69cdeb':'#8edcdb';this.scene.background=new THREE.Color(sky);this.scene.fog=new THREE.Fog(sky,1500,3500);
     this.sun.color.set(sunset?'#ffc592':'#fff2d8');this.sun.intensity=sunset?3.8:3.4;
     this.hemi.groundColor.set(sunset?'#8e786a':coast?'#779994':'#6c8869');
     const length=game.mat.x+game.mat.w+280;
+    this.splashGroup=null;this.waterStreaks=[];
+    if(game.water){this.buildDiveMap(game,length);}else{
     const ground=this.material(this.mapIndex>2?game.map.colors[3]:coast?'#e9ca8b':sunset?'#b3a176':'#88bb69');this.block(length/2,game.map.id==='city'?-520:-28,-200,length+2400,30,2500,ground);
     const concrete=this.material('#d9d7c9'),edge=this.material('#8caaa1'),deck=this.material(sunset?'#d9b99b':coast?'#c4c8b6':'#bcc9ad');
     this.block(length/2,-13,0,length+240,20,170,concrete);this.block(length/2,-2,0,length+200,3,145,deck);
@@ -216,15 +294,17 @@ class KaariRenderer {
     const backWall=this.material(sunset?'#c7b3a0':'#b8c6b2');this.block(length/2,16,-110,length+450,35,8,backWall);
     this.block(length/2,36,-110,length+470,5,15,concrete);
     this.buildLandmarks(game,length);
+    }
     const steel=this.material('#d6e4df',.27,.7),frame=this.material(coast?'#40747e':sunset?'#715f56':'#476f60',.4,.35),rubber=this.material('#324d45'),bolt=this.material('#f4e7c4',.3,.65);
     this.barIndicators=[];
     game.bars.forEach((b,i)=>{
       const y=K_FLOOR-b.y;
       for(const z of [-38,38]){
-        this.rod([b.x,2,z],[b.x,y+6,z],4.5,frame);
-        this.block(b.x,3,z,34,6,22,rubber);
-        for(const dx of [-11,11])this.ball(b.x+dx,7,z,2,bolt);
-        this.rod([b.x,10,z],[b.x,62,z],6.5,rubber);
+        const base=game.water?180:0;
+        this.rod([b.x,base+2,z],[b.x,y+6,z],4.5,frame);
+        this.block(b.x,base+3,z,34,6,22,rubber);
+        for(const dx of [-11,11])this.ball(b.x+dx,base+7,z,2,bolt);
+        this.rod([b.x,base+10,z],[b.x,base+62,z],6.5,rubber);
         this.rod([b.x,y-8,z],[b.x,y+5,z],6,steel);
       }
       this.rod([b.x,y,-45],[b.x,y,45],3.6,steel);
@@ -232,6 +312,8 @@ class KaariRenderer {
       const indicator=this.ball(b.x,y+8,39,3.2,this.material('#a8b6ac'));this.barIndicators.push(indicator);
       const label=this.label(String(i+1).padStart(2,'0'),'#426158',12);label.position.set(b.x,y+25,0);this.world.add(label);
     });
+    if(game.water)return;
+    const lane=this.material('#eaf0d4');
     const mat=game.mat,foam=this.material('#69a28f',.9),top=this.material('#95c5a4',.95);
     this.block(mat.x+mat.w/2,-9,0,mat.w,17,117,foam);this.block(mat.x+mat.w/2,0,0,mat.w-6,2,111,top);
     for(const z of [-48,48])this.block(mat.x+mat.w/2,1.2,z,mat.w-22,.35,1.6,lane);
@@ -241,6 +323,8 @@ class KaariRenderer {
   draw(game,offset,trail,particles,focusY=160,viewHeight=480){
     const inMenu=document.body.dataset.screen==='menu',time=performance.now()/1000;
     if(this.mapIndex!==game.mapIndex)this.buildMap(game);
+    this.drawWater(game,time);
+    this.person.visible=inMenu||!game.splash||game.elapsedAfterEnd<.12;
     const halfHeight=viewHeight/2,halfWidth=halfHeight*this.width/this.height;
     Object.assign(this.camera,{left:-halfWidth,right:halfWidth,top:halfHeight,bottom:-halfHeight});this.camera.updateProjectionMatrix();
     const cx=offset+halfWidth;
@@ -293,7 +377,7 @@ class KaariRenderer {
         this.targetGuide.style.left=`${clamp(v.x*.5+.5,.10,.90)*100}%`;
         this.targetGuide.style.top=`${clamp(-v.y*.5+.5,.18,.68)*100}%`;
         const arrow=Math.abs(v.x)>.86?(v.x>0?'→':'←'):(v.y>0?'↑':'↓');
-        this.targetGuide.textContent=`${index<0?'MAALI':String(index+1).padStart(2,'0')} ${arrow}`;
+        this.targetGuide.textContent=`${index<0?(game.water?'VETEEN':'MAALI'):String(index+1).padStart(2,'0')} ${arrow}`;
       }
     }
     this.labels.replaceChildren();for(const p of particles){const v=new THREE.Vector3(p.x,K_FLOOR-p.y,0).project(this.camera),el=document.createElement('span');el.textContent=p.label;el.style.left=`${(v.x*.5+.5)*100}%`;el.style.top=`${(-v.y*.5+.5)*100}%`;el.style.opacity=Math.min(1,p.life);this.labels.appendChild(el);}

@@ -40,3 +40,12 @@ body[data-touch=true] .touch .twist-controls{position:static;transform:none;alig
 body[data-touch=true] .touch .twist-controls button{width:48px;height:48px;font-size:24px;font-weight:400}
 body[data-touch=true] .touch button.pressed{background:#ffffff2e;border-color:#ffffff80;color:#fffffff2;box-shadow:none;transform:none}
 body[data-touch=true] #start-hint{bottom:calc(104px + env(safe-area-inset-bottom));background:#15202c26;backdrop-filter:none;border-radius:5px;color:#ffffffb3;font-size:10px;padding:7px 10px}
+/* Water destinations have shoreline silhouettes in the map picker. */
+#menu .coast .map-art,#menu .harbor .map-art{background:linear-gradient(170deg,#8be4f0 0 44%,#22babb 45% 100%)}
+#menu .sunset .map-art{background:radial-gradient(circle at 76% 27%,#ffdd99 0 12%,transparent 13%),linear-gradient(#e8a095 0 46%,#489ea4 47%)}
+#menu .alpine .map-art{background:linear-gradient(#c6e9f7 0 45%,#3b9eba 46%)}
+#menu :is(.coast,.sunset,.harbor,.alpine) .map-art:before{left:-5%;bottom:-8%;width:43%;height:78%;border-radius:4px 12px 0 0;transform:rotate(-6deg);background:#748e76;clip-path:polygon(0 8%,100% 0,89% 65%,68% 100%,0 100%)}
+#menu .sunset .map-art:before{background:#be8061}#menu .alpine .map-art:before{background:#7d93a1}
+#menu :is(.coast,.sunset,.harbor,.alpine) .map-art i{left:16%;bottom:55%;width:17%;height:35%;border-width:3px;transform:none}
+#menu .harbor .map-art:after{background:#598767;border-radius:50% 50% 0 0;height:26%;bottom:8%;width:30%;left:62%;transform:none}
+#menu .alpine .map-art:after{background:linear-gradient(#f1f5ff 0 26%,#8aa2b5 27%);clip-path:polygon(50% 0,100% 100%,0 100%);border-radius:0;bottom:20%;height:65%;transform:none}

@@ -93,3 +93,13 @@ Hahmon alapuolella oleva ratakaruselli näyttää valitun radan keskellä sekä 
 - **Lumihuiput:** lumiset vuoret, kuuset, mökki ja köysirata.
 
 Kaikilla kuudella radalla on omat tankosijoittelut, vaikeustaso ja ennätys. Rakennukset ovat maisemaa; varsinainen rata ja törmäysfysiikka pysyvät kaksiulotteisina.
+
+## Water jumps
+
+Two full bar courses remain: Puistotreeni and Kattokaupunki. Turkoosilahti,
+Kultakalliot, Saaristoloikka and Vuoristojarvi are now two-bar water courses.
+Visit both bars, then launch over the cliff into the lake. A water finish awards
+500 points; a straight feet-first or head-first entry adds 200. Other entry poses
+are accepted. Flight tricks and combo bonuses still count. Landing on the cliff
+or skipping a bar does not complete the course. The four locations have distinct
+rock formations, shoreline scenery, animated water, spray and expanding ripples.
