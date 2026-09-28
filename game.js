@@ -5,22 +5,22 @@ const game=new KaariPhysics(),keys=new Set(),touchKeys=new Set();
 const touchPointers=new Map();
 const touchMode=navigator.maxTouchPoints>0||matchMedia('(any-pointer: coarse)').matches;
 document.body.dataset.touch=String(touchMode);
-if(touchMode)ui['start-hint'].textContent='Pidä OTE · kerää vauhtia KERÄÄN-napilla';
+if(touchMode)ui['start-hint'].textContent='Hold GRIP · build momentum with TUCK';
 const graphics=new KaariRenderer(canvas);
 let campaignSave=null;try{campaignSave=JSON.parse(localStorage.getItem('jumpbar-campaign-v1'));}catch{}
 const campaign=new JumpbarCampaign(campaignSave);
 let selectedCharacter=campaign.data.equipped;
 const initialStartHint=ui['start-hint'].innerHTML;
-function saveCampaign(){try{localStorage.setItem('jumpbar-campaign-v1',JSON.stringify(campaign.data));}catch{document.getElementById('wallet').title='Tallennus ei ole saatavilla. Edistyminen säilyy tämän pelikerran ajan.';}}
+function saveCampaign(){try{localStorage.setItem('jumpbar-campaign-v1',JSON.stringify(campaign.data));}catch{document.getElementById('wallet').title='Saving is unavailable. Progress lasts for this session.';}}
 function updateCampaignMenu(){
   const c=JUMPBAR_CHARACTERS.find(c=>c.id===selectedCharacter),owned=campaign.owns(c.id),chapter=campaign.chapter(game.mapIndex),unlocked=campaign.available(game.mapIndex);
   document.getElementById('wallet').textContent='◈ '+campaign.data.coins;
   document.getElementById('character-ability').textContent=c.ability+' · '+c.instruction;
-  const buy=document.getElementById('buy-character');buy.hidden=owned;buy.disabled=campaign.data.coins<c.price;buy.textContent=buy.disabled?'◈ '+c.price+' · puuttuu '+(c.price-campaign.data.coins):'OSTA · ◈ '+c.price;
+  const buy=document.getElementById('buy-character');buy.hidden=owned;buy.disabled=campaign.data.coins<c.price;buy.textContent=buy.disabled?'◈ '+c.price+' · need '+(c.price-campaign.data.coins):'BUY · ◈ '+c.price;
   document.getElementById('chapter-title').textContent=chapter.title;
-  document.getElementById('chapter-goal').textContent=unlocked?'TAVOITE '+chapter.goal+' P · '+('★'.repeat(campaign.stars(game.mapIndex))||'☆☆☆'):'LUKITTU · suorita edellinen luku';
+  document.getElementById('chapter-goal').textContent=unlocked?'TARGET '+chapter.goal+' PTS · '+('★'.repeat(campaign.stars(game.mapIndex))||'☆☆☆'):'LOCKED · finish the previous chapter';
   document.getElementById('chapter-story').textContent=chapter.story;
-  const play=document.getElementById('play');play.disabled=!owned||!unlocked;play.textContent=!unlocked?'LUKITTU':!owned?'VALITSE OMA HAHMO':campaign.cleared(game.mapIndex)?'PELAA UUDELLEEN ↗':'ALOITA LUKU ↗';
+  const play=document.getElementById('play');play.disabled=!owned||!unlocked;play.textContent=!unlocked?'LOCKED':!owned?'SELECT OWNED':campaign.cleared(game.mapIndex)?'PLAY AGAIN ↗':'START CHAPTER ↗';
 }
 document.getElementById('buy-character').onclick=()=>{if(campaign.buy(selectedCharacter)){saveCampaign();selectCharacter(selectedCharacter);}};
 function selectCharacter(id){
@@ -72,7 +72,7 @@ function clearCombo(){comboDisplay.hidden=true;comboDisplay.getAnimations({subtr
 function showCombo(event){
   if(event.type==='chainBreak'){clearCombo();return;}
   comboDisplay.hidden=false;
-  document.getElementById('combo-caption').textContent=event.chain>1?event.chain+' HYPYN COMBO':'COMBO!';
+  document.getElementById('combo-caption').textContent=event.chain>1?event.chain+' JUMP COMBO':'COMBO!';
   document.getElementById('combo-multiplier').textContent='×'+event.multiplier;
   document.getElementById('combo-bonus').textContent='+'+event.bonus+' BONUS';
   comboDisplay.style.setProperty('--combo-color',event.multiplier>=4?'#ff79ef':'#bcff58');
@@ -87,12 +87,12 @@ function showCombo(event){
   }
 }
 for(let i=0;i<12;i++)document.getElementById('combo-sparks').appendChild(document.createElement('i'));
-function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`ENNÄTYS ${best}`;document.getElementById('hud-goal').textContent=`/ ${campaign.chapter(game.mapIndex).goal} P`;}
+function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`BEST ${best}`;document.getElementById('hud-goal').textContent=`/ ${campaign.chapter(game.mapIndex).goal} PTS`;}
 function updateMapCarousel(){
   const count=JUMPBAR_CHAPTERS.length,current=JUMPBAR_CHAPTERS.findIndex(c=>c.map===game.mapIndex);
   document.querySelectorAll('[data-map]').forEach(button=>{
     const offset=Number(button.dataset.chapter)-current;
-    const map=Number(button.dataset.map),locked=!campaign.available(map);button.classList.toggle('locked',locked);button.querySelector('.map-info small').textContent=locked?'LUKITTU':campaign.cleared(map)?'★'.repeat(campaign.stars(map))+' · SUORITETTU':'TAVOITE '+campaign.chapter(map).goal+' P';
+    const map=Number(button.dataset.map),locked=!campaign.available(map);button.classList.toggle('locked',locked);button.querySelector('.map-info small').textContent=locked?'LOCKED':campaign.cleared(map)?'★'.repeat(campaign.stars(map))+' · COMPLETE':'TARGET '+campaign.chapter(map).goal+' PTS';
     button.dataset.offset=offset;button.setAttribute('aria-pressed',String(offset===0));button.tabIndex=Math.abs(offset)<=2?0:-1;button.setAttribute('aria-hidden',String(Math.abs(offset)>2));
   });
   document.getElementById('map-counter').textContent=`${String(current+1).padStart(2,'0')} / ${String(count).padStart(2,'0')}`;
@@ -130,19 +130,19 @@ function step(dt){
   }
   if(screen!=='play')return;
   particles.forEach(p=>{p.life-=dt;p.y-=24*dt;});particles=particles.filter(p=>p.life>0);
-  game.step(dt,controls());ui['start-hint'].hidden=game.active&&!game.grounded;if(game.grounded)ui['start-hint'].textContent='KERÄÄ → VAPAUTA · pomppaa takaisin tangolle';
+  game.step(dt,controls());ui['start-hint'].hidden=game.active&&!game.grounded;if(game.grounded)ui['start-hint'].textContent='TUCK → RELEASE · bounce back to the bar';
   document.querySelector('.special-control').classList.toggle('spent',game.specialAwarded);
   for(const event of game.events){
     if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
     }else if(event.type==='finish'){
       const reward=campaign.claim(game);saveCampaign();readBest();
-      ui['result-label'].textContent=event.splash?(!event.success?'KÄY MOLEMMILLA TANGOILLA':event.splash.clean?'SIISTI VESIHYPPY +200':'LOISKAUS!'):event.success?'PUHDAS ALASTULO':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'LOISKIS!':'TANKO PUUTTUU!'):event.success?'TYYLILLÄ!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} tankoa / paras combo ${game.maxChain} · ennätys ${best}`;
+      ui['result-label'].textContent=event.splash?(!event.success?'VISIT BOTH BARS':event.splash.clean?'CLEAN DIVE +200':'SPLASH!'):event.success?'CLEAN LANDING':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'SPLASH!':'MISSED A BAR!'):event.success?'STUCK IT!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} bars / best combo ${game.maxChain} · best ${best}`;
       if(reward){
-        document.getElementById('result-reward').textContent='+'+reward.coins+' ◈ KOLIKKOA';
+        document.getElementById('result-reward').textContent='+'+reward.coins+' ◈ COINS';
         const chapter=campaign.chapter(game.mapIndex),cleared=campaign.cleared(game.mapIndex),index=JUMPBAR_CHAPTERS.indexOf(chapter);
-        document.getElementById('result-unlock').textContent=reward.firstClear?(reward.allClear?'Kalsareista mestariksi! Tarina suoritettu. Kerää seuraavaksi kaikki tähdet.':'Luku suoritettu! Seuraava rata on nyt auki.'):cleared?'Luku suoritettu · paranna tähtitulostasi.':event.success?'Maali saavutettu! Kerää vielä '+reward.missing+' pistettä samalla suorituksella.':'Laskeudu maaliin ja kerää '+chapter.goal+' pistettä avataksesi seuraavan luvun.';
+        document.getElementById('result-unlock').textContent=reward.firstClear?(reward.allClear?'From underwear to champion! Story complete. Go collect every star.':'Chapter complete! The next course is unlocked.'):cleared?'Chapter complete · aim for more stars.':event.success?'Finished! Earn another '+reward.missing+' points in a single run.':'Reach the finish with '+chapter.goal+' points to unlock the next chapter.';
         document.getElementById('next-chapter').hidden=!cleared||index===JUMPBAR_CHAPTERS.length-1;
-        if(reward.allClear&&reward.firstClear)ui['result-title'].textContent='MESTARI!';
+        if(reward.allClear&&reward.firstClear)ui['result-title'].textContent='CHAMPION!';
         updateCampaignMenu();
       }
       if(event.splash){particles.push({x:event.splash.x,y:K_FLOOR-60,label:!event.success?'SPLASH!':event.splash.clean?'+700 SPLASH!':'+500 SPLASH!',life:1.6});clearInput();ui.touch.hidden=true;}

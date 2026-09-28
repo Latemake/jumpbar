@@ -1,11 +1,11 @@
 'use strict';
 const JUMPBAR_CHAPTERS=[
-  {map:0,title:'1 · Kalsareista kaikki alkaa',goal:900,reward:60,story:'Puiston tangot odottavat. Opettele rytmi ja laskeudu maaliin.'},
-  {map:1,title:'2 · Ensimmäinen loiskaus',goal:1200,reward:80,story:'Rohkeutta rannalla. Yhdistä ilmassa temppu ja siisti vesihyppy.'},
-  {map:4,title:'3 · Saariston kutsu',goal:1600,reward:100,story:'Saariston porukka haastaa sinut. Jatka comboa veteen asti.'},
-  {map:2,title:'4 · Kultainen ilta',goal:2200,reward:120,story:'Kallioiden yllä on tilaa. Kokeile tuplavolttia ja erikoistemppua.'},
-  {map:3,title:'5 · Kattojen kuningas',goal:3000,reward:160,story:'Kaupungin pitkä rata vaatii rytmiä. Pelasta putoaminen pompulla.'},
-  {map:5,title:'6 · Viimeinen huippu',goal:3200,reward:200,story:'Vuoristojärven finaali. Näytä, mitä olet matkan varrella oppinut.'}
+  {map:0,title:'1 · Humble Underwear',goal:900,reward:60,story:'The park is yours. Find your rhythm and stick the landing.'},
+  {map:1,title:'2 · Making a Splash',goal:1200,reward:80,story:'Take the plunge. Mix an aerial trick with a clean dive.'},
+  {map:4,title:'3 · Island Invitation',goal:1600,reward:100,story:'The island crew has a challenge. Carry your combo into the water.'},
+  {map:2,title:'4 · Golden Hour',goal:2200,reward:120,story:'Room to fly. Try a double flip and your signature trick.'},
+  {map:3,title:'5 · Rooftop Royalty',goal:3000,reward:160,story:'Keep your rhythm across the rooftops. Bounce back from a fall.'},
+  {map:5,title:'6 · The Final Summit',goal:3200,reward:200,story:'The alpine finale. Put everything you have learned together.'}
 ];
 class JumpbarCampaign {
   constructor(saved=null){
@@ -14,6 +14,9 @@ class JumpbarCampaign {
     if(saved&&saved.version===1){
       const integer=n=>Number.isSafeInteger(n)&&n>=0?n:0;
       this.data.coins=integer(saved.coins);
+      // Retired characters are removed from the next save, making refunds
+      // idempotent when that save is loaded again.
+      for(const [id,price] of [['shadow',420],['astro',700]])if(Array.isArray(saved.owned)&&saved.owned.includes(id))this.data.coins+=price;
       this.data.owned=['rookie',...chars.filter(c=>c.id!=='rookie'&&Array.isArray(saved.owned)&&saved.owned.includes(c.id)).map(c=>c.id)];
       this.data.equipped=this.data.owned.includes(saved.equipped)?saved.equipped:'rookie';
       for(const chapter of JUMPBAR_CHAPTERS){const r=saved.records?.[chapter.map];if(r&&typeof r==='object')this.data.records[chapter.map]={best:integer(r.best),successBest:integer(r.successBest)};}

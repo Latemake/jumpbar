@@ -130,3 +130,16 @@ seconds) and release to bounce towards the next missed bar. Hold grip to catch.
 Landing assistance is stronger; head-first falls still end the attempt.
 
 Validation: `node --test physics.test.js campaign.test.js`.
+
+## Character and language refresh
+
+The interface, chapter dialogue, course names, controls, help, trick feedback
+and results are now in English. The current roster is Boxer Barry, Big Bruno
+and Neon. Shadow and Astro have been retired: loading a save refunds their
+420 / 700 coin purchase prices, removes their ownership, and switches a retired
+equipped character to Barry. Subsequent saves do not repeat the refund.
+
+Character rendering now uses a single smooth torso profile (including Bruno's
+belly), continuous bending limb surfaces, and textured underwear / shorts.
+There are no separate elbow/knee balls or overlapping belly pieces. Physics
+and existing chapter progress are preserved.

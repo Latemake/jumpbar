@@ -1,20 +1,18 @@
 ﻿'use strict';
 const KAARI_MAPS = [
-  {id:'garden',name:'Puistotreeni',description:'Helppo · 5 tankoa · opettele keräasennon rytmi',points:[[180,220],[325,220],[480,205],[635,220],[795,210]],landing:240,colors:['#e7ecdf','#dbe3d2','#dee6d4','#d1ddc6','#809273']},
-  {id:'coast',mode:'dive',name:'Turkoosilahti',description:'Vesihyppy · 2 tankoa · temppuile ja loiskauta',points:[[180,80],[335,65]],landing:1100,colors:['#e2edf0','#d1e0e4','#c8dde2','#c2d5d4','#6d919d']},
-  {id:'sunset',mode:'dive',name:'Kultakalliot',description:'Vesihyppy · 2 tankoa · temppuile ja loiskauta',points:[[180,60],[350,40]],landing:1100,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']},
-  {id:'city',name:'Kattokaupunki',description:'Keskitaso · 7 tankoa · pilvenpiirtäjien katolla',points:[[180,210],[350,190],[530,215],[720,180],[910,205],[1090,185],[1280,210]],landing:280,colors:['#aaa9db','#c4bfe5','#8298ba','#87819d','#535774']},
-  {id:'harbor',mode:'dive',name:'Saaristoloikka',description:'Vesihyppy · 2 tankoa · temppuile ja loiskauta',points:[[180,80],[310,95]],landing:1100,colors:['#a9d6de','#c8e5e5','#6c9baa','#93aeb2','#536d79']},
-  {id:'alpine',mode:'dive',name:'Vuoristojärvi',description:'Vesihyppy · 2 tankoa · temppuile ja loiskauta',points:[[180,50],[335,35]],landing:1100,colors:['#c7e3f6','#e1edf6','#b8d3e3','#e6edf0','#8195ac']}
+  {id:'garden',name:'Park Practice',description:'Easy · 5 bars · find your rhythm',points:[[180,220],[325,220],[480,205],[635,220],[795,210]],landing:240,colors:['#e7ecdf','#dbe3d2','#dee6d4','#d1ddc6','#809273']},
+  {id:'coast',mode:'dive',name:'Turquoise Bay',description:'Water jump · 2 bars · trick and splash',points:[[180,80],[335,65]],landing:1100,colors:['#e2edf0','#d1e0e4','#c8dde2','#c2d5d4','#6d919d']},
+  {id:'sunset',mode:'dive',name:'Golden Cliffs',description:'Water jump · 2 bars · trick and splash',points:[[180,60],[350,40]],landing:1100,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']},
+  {id:'city',name:'Rooftop Run',description:'Medium · 7 bars · above the skyline',points:[[180,210],[350,190],[530,215],[720,180],[910,205],[1090,185],[1280,210]],landing:280,colors:['#aaa9db','#c4bfe5','#8298ba','#87819d','#535774']},
+  {id:'harbor',mode:'dive',name:'Island Hopping',description:'Water jump · 2 bars · trick and splash',points:[[180,80],[310,95]],landing:1100,colors:['#a9d6de','#c8e5e5','#6c9baa','#93aeb2','#536d79']},
+  {id:'alpine',mode:'dive',name:'Alpine Lake',description:'Water jump · 2 bars · trick and splash',points:[[180,50],[335,35]],landing:1100,colors:['#c7e3f6','#e1edf6','#b8d3e3','#e6edf0','#8195ac']}
 ];
 const K_TAU=Math.PI*2,K_G=720,K_FLOOR=475;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const JUMPBAR_CHARACTERS=[
-  {id:'rookie',name:'Kalsari-Kalle',style:'Ensimmäinen loikka. Isot unelmat, pienet kalsarit.',price:0,body:1,bare:true,skin:'#dfa77f',shirt:'#dfa77f',pants:'#f4eee3',shoe:'#dfa77f',hair:'#6a422b',badge:'',ability:'Kynttilä',instruction:'Pidä TEMPPU ilman kerää 0,4 s ilmassa.',special:'candle',specialPoints:100,spin:1,bounce:1},
-  {id:'bruno',name:'Möhkö',style:'Leveä hymy, pyöreä maha ja vahva ponnistus.',price:80,body:1.65,bare:true,skin:'#b97953',shirt:'#b97953',pants:'#e96b57',shoe:'#f6d569',hair:'#4b3027',badge:'',ability:'Tykinkuula',instruction:'Pidä TEMPPU + KERÄÄN 0,4 s ilmassa.',special:'cannon',specialPoints:150,spin:.9,bounce:1.12},
-  {id:'neon',name:'Neon',style:'Siro akrobaatti. Nopea kierto ja suorat taitot.',price:220,body:.82,skin:'#88563e',shirt:'#26d6bf',pants:'#432969',shoe:'#f0ff8f',hair:'#251b35',badge:'N',ability:'Taitto',instruction:'Pidä TEMPPU ilman kerää 0,4 s ilmassa.',special:'pike',specialPoints:175,spin:1.15,bounce:1},
-  {id:'shadow',name:'Varjo',style:'Kiertojen mestari. Yhdistä voltti ja kierre.',price:420,body:.92,skin:'#dca780',shirt:'#7652e9',pants:'#24233b',shoe:'#baff75',hair:'#24233b',badge:'V',ability:'Korkkiruuvi',instruction:'Pidä TEMPPU + KIERTO: voltti ja 360° samassa hypyssä.',special:'corkscrew',specialPoints:300,spin:1.3,bounce:1},
-  {id:'astro',name:'Astro',style:'Pyöreä avaruuspuku. Leveä tähtihyppy.',price:700,body:1.25,skin:'#dca580',shirt:'#eef1ff',pants:'#6b7da9',shoe:'#74dcec',hair:'#60422e',badge:'A',ability:'Tähtihyppy',instruction:'Pidä TEMPPU ilman kerää 0,4 s ilmassa.',special:'star',specialPoints:200,spin:1,bounce:1.06}
+  {id:'rookie',name:'Boxer Barry',style:'Big dreams. Questionable underwear.',price:0,body:1,bare:true,skin:'#dfa77f',shirt:'#dfa77f',pants:'#f4eee3',shoe:'#dfa77f',hair:'#6a422b',badge:'',ability:'Candle',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'candle',specialPoints:100,spin:1,bounce:1},
+  {id:'bruno',name:'Big Bruno',style:'Big belly. Bigger bounce.',price:80,body:1.65,bare:true,skin:'#b97953',shirt:'#b97953',pants:'#e96b57',shoe:'#f6d569',hair:'#4b3027',badge:'',ability:'Cannonball',instruction:'Hold TRICK + TUCK for 0.4 s in the air.',special:'cannon',specialPoints:150,spin:.9,bounce:1.12},
+  {id:'neon',name:'Neon',style:'Light on her feet. Quick in the air.',price:220,body:.82,skin:'#88563e',shirt:'#26d6bf',pants:'#432969',shoe:'#f0ff8f',hair:'#251b35',badge:'N',ability:'Pike',instruction:'Hold TRICK without tucking for 0.4 s in the air.',special:'pike',specialPoints:175,spin:1.15,bounce:1},
 ];
 
 // Distance-constrained Verlet skeleton. Pose muscles switch off after a fall.
@@ -116,7 +114,7 @@ class KaariPhysics {
         this.grounded=false;this.beginFlight();p.angle=0;p.momentum=0;p.vy=-530*this.character.bounce;p.cooldown=.12;
         const target=this.bars.find((_,i)=>!this.visited.has(i))||{x:this.mat.x+80,y:surface-65};
         p.vx=clamp((target.x-p.x)/.9,-240,240);p.y-=5;
-        this.events.push({type:'bounce',label:'POMPPU!',x:p.x,y:p.y});return;
+        this.events.push({type:'bounce',label:'BOUNCE!',x:p.x,y:p.y});return;
       }
     }
     p.angle=0;p.omega=0;p.vx=0;p.vy=0;p.specialPose=null;
@@ -150,7 +148,7 @@ class KaariPhysics {
     }else if(success){this.score+=500;this.player.vx=0;this.player.vy=0;this.player.twist=0;this.player.twistSpeed=0;this.player.angle=0;this.player.tuck=0;this.player.y=K_FLOOR-56;this.ragdoll.reset(this.player);}else{
       const p=this.player;
       const kind=p.tuck>.55||Math.abs(p.omega)>7?'roll':Math.cos(p.angle)<-.45?'head':Math.sin(p.angle)<-.55?'belly':Math.sin(p.angle)>.55?'back':'sit';
-      const captions={head:['NUPPI EDELLÄ!','Ajatus katkesi hetkeksi.','POKS!'],belly:['MAHALASKU!','Täydet pisteet pinta-alasta.','LÄTS!'],back:['SELKÄPOMPPU!','Maa palautti lähettäjälle.','BOING!'],roll:['PYYKKILINKO!','Vielä yksi kierros, kiitos.','HURRR!'],sit:['PYLLÄHDYS!','Istumapaikka löytyi.','TÖMPS!']};
+      const captions={head:['HEAD FIRST!','Brain temporarily disconnected.','BONK!'],belly:['BELLY FLOP!','Full marks for surface area.','SPLAT!'],back:['BACK BOUNCE!','Returned to sender.','BOING!'],roll:['SPIN CYCLE!','One more spin, please.','WHIRR!'],sit:['BUTT FIRST!','Found a seat.','THUMP!']};
       const [title,quip,sound]=captions[kind];this.crash={kind,title,quip,sound,x:p.x,direction:p.vx<0?-1:1,kicked:false,duration:2.35};
       this.ragdoll.fall(p.vx,p.vy,kind);
     }
@@ -194,7 +192,7 @@ class KaariPhysics {
       const completed=Math.floor(Math.abs(this.airRotation)/K_TAU);
       if(completed>this.turns){this.flightPoints+=250*(completed-this.turns);this.score+=250*(completed-this.turns);this.turns=completed;this.events.push({type:'flip',label:(completed>1?completed+'× ':'')+(this.airRotation>0?'BACKFLIP':'FRONTFLIP'),x:p.x,y:p.y});}
       if(p.tuck<.2)this.layoutRotation+=Math.abs(rotation);else this.layoutRotation=0;
-      if(this.layoutRotation>=K_TAU&&!this.layoutAwarded){this.layoutAwarded=true;this.score+=150;this.flightPoints+=150;this.events.push({type:'special',label:'SUORA VOLTTI',points:150,x:p.x,y:p.y});}
+      if(this.layoutRotation>=K_TAU&&!this.layoutAwarded){this.layoutAwarded=true;this.score+=150;this.flightPoints+=150;this.events.push({type:'special',label:'LAYOUT FLIP',points:150,x:p.x,y:p.y});}
       const twists=Math.floor(Math.abs(p.twist)/K_TAU);
       if(twists>this.twistTurns){this.flightPoints+=200*(twists-this.twistTurns);this.score+=200*(twists-this.twistTurns);this.twistTurns=twists;this.events.push({type:'twist',label:`${twists*360}°`,x:p.x,y:p.y});}
       if(this.turns>0&&this.twistTurns>0&&!this.comboAwarded){this.comboAwarded=true;this.flightPoints+=150;this.score+=150;this.events.push({type:'combo',label:`${this.airRotation>0?'BACKFLIP':'FRONTFLIP'} ${this.twistTurns*360}°`,x:p.x,y:p.y-25});}
@@ -233,7 +231,7 @@ class KaariPhysics {
         if(feetFirst&&onMat&&this.visited.size===this.bars.length)this.finish(true);
         else if(feetFirst){
           this.settleCombo(false);this.grounded=true;this.groundCharge=0;this.groundHeld=false;p.specialPose=null;p.twist=0;p.twistSpeed=0;p.angle=0;p.tuck=0;p.y=surface-56;
-          this.ragdoll.reset(p);this.events.push({type:'ground',label:'KERÄÄ → VAPAUTA',x:p.x,y:p.y});
+          this.ragdoll.reset(p);this.events.push({type:'ground',label:'TUCK → RELEASE',x:p.x,y:p.y});
         }else this.finish(false);
       }
       if(p.y>K_FLOOR+80||p.y<-650||p.x<-180||p.x>this.mat.x+this.mat.w+200)this.finish(false);

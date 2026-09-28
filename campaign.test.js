@@ -35,3 +35,10 @@ test('invalid saves and non-finite scores cannot create currency or equip unknow
   c.claim(result(0,Infinity,false));assert.equal(c.data.coins,0);
   assert.equal(new JumpbarCampaign({version:99,coins:1000}).data.coins,0);
 });
+
+test('retired characters refund their purchase prices once and preserve chapter progress',()=>{
+  const c=new JumpbarCampaign({version:1,coins:35,owned:['rookie','bruno','shadow','astro'],equipped:'astro',records:{0:{best:1500,successBest:1200}}});
+  assert.equal(c.data.coins,1155);assert.deepEqual(c.data.owned,['rookie','bruno']);assert.equal(c.data.equipped,'rookie');assert.equal(c.unlocked,1);
+  assert.equal(c.buy('astro'),false);assert.equal(c.buy('shadow'),false);
+  const reloaded=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(reloaded.data.coins,1155);assert.equal(reloaded.unlocked,1);
+});
