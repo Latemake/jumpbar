@@ -6,7 +6,7 @@ function result(map,score,success=true){const g=new KaariPhysics(map);g.ended=tr
 test('campaign gates by a successful score and rewards a run once, with one first-clear bonus',()=>{
   const c=new JumpbarCampaign();assert.equal(c.unlocked,0);assert.deepEqual(c.data.owned,['rookie']);
   assert.equal(c.claim(result(1,5000)),null);
-  const low=c.claim(result(0,899));assert.equal(low.cleared,false);assert.equal(c.unlocked,0);
+  const low=c.claim(result(0,699));assert.equal(low.cleared,false);assert.equal(c.unlocked,0);
   c.claim(result(0,9000,false));assert.equal(c.unlocked,0);
   const run=result(0,900),reward=c.claim(run),coins=c.data.coins;
   assert.equal(reward.firstClear,true);assert.equal(reward.newChapter,true);assert.equal(c.unlocked,1);assert.equal(c.stars(0),1);

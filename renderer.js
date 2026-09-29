@@ -353,6 +353,15 @@ class KaariRenderer {
       const indicator=this.ball(b.x,y+8,39,3.2,this.material('#a8b6ac'));this.barIndicators.push(indicator);
       const label=this.label(String(i+1).padStart(2,'0'),'#426158',12);label.position.set(b.x,y+25,0);this.world.add(label);
     });
+    this.objectiveMeshes=game.objectives.map((o,i)=>{
+      const group=new THREE.Group();this.world.add(group);
+      const gold=this.material('#ffdc55',.3,.45);gold.emissive.set('#684616');
+      const geo=new THREE.TorusGeometry(1,.022,8,64);geo.userData.worldOwned=true;
+      const hoop=this.mesh(geo,gold,group);hoop.rotation.x=Math.PI/2;hoop.scale.set(o.r,55,o.r);
+      const label=this.label(game.map.challenge==='stars'?'★ '+(i+1):game.map.challenge==='moving'?'MOVING HOOP':'FLY THROUGH','#fff2a3',17);label.position.set(0,28,0);group.add(label);
+      if(game.map.challenge==='stars'){const star=this.mesh(this.stars[0].geometry,gold,group);star.scale.setScalar(2.5);star.position.y=8;}
+      group.position.set(o.x,K_FLOOR-o.y,0);return group;
+    });
     if(game.water)return;
     const lane=this.material('#eaf0d4');
     const mat=game.mat,foam=this.material('#69a28f',.9),top=this.material('#95c5a4',.95);
@@ -365,6 +374,7 @@ class KaariRenderer {
     const inMenu=document.body.dataset.screen==='menu',time=performance.now()/1000;
     if(this.mapIndex!==game.mapIndex)this.buildMap(game);
     this.drawWater(game,time);
+    (this.objectiveMeshes||[]).forEach((group,i)=>{const o=game.objectives[i];group.position.set(o.x+(o.motion||0)*Math.sin(game.courseTime*1.4),K_FLOOR-o.y,0);group.visible=!o.done;});
     this.person.visible=true;
     if(game.splash&&!inMenu&&!this.mobile)focusY+=(Math.min(focusY,-30)-focusY)*Math.min(1,game.elapsedAfterEnd*3);
     const halfHeight=viewHeight/2,halfWidth=halfHeight*this.width/this.height;

@@ -1,11 +1,11 @@
 'use strict';
 const JUMPBAR_CHAPTERS=[
-  {map:0,title:'1 · Humble Underwear',goal:900,reward:60,story:'The park is yours. Find your rhythm and stick the landing.'},
-  {map:1,title:'2 · Making a Splash',goal:1200,reward:80,story:'Take the plunge. Mix an aerial trick with a clean dive.'},
-  {map:4,title:'3 · Island Invitation',goal:1600,reward:100,story:'The island crew has a challenge. Carry your combo into the water.'},
-  {map:2,title:'4 · Golden Hour',goal:2200,reward:120,story:'Room to fly. Try a double flip and your signature trick.'},
-  {map:3,title:'5 · Rooftop Royalty',goal:3000,reward:160,story:'Keep your rhythm across the rooftops. Bounce back from a fall.'},
-  {map:5,title:'6 · The Final Summit',goal:3200,reward:200,story:'The alpine finale. Put everything you have learned together.'}
+  {map:0,title:'1 · Humble Underwear',goal:700,reward:60,story:'Three close bars and a wide mat. Catch every bar and land — no flips required.'},
+  {map:1,title:'2 · Making a Splash',goal:900,reward:80,story:'SPECIAL · Fly through the big gold hoop, then splash into the bay.'},
+  {map:4,title:'3 · Island Invitation',goal:1400,reward:100,story:'The island crew has a challenge. Carry your combo into the water.'},
+  {map:2,title:'4 · Golden Hour',goal:1900,reward:120,story:'SPECIAL · Collect all three sky stars during your cliff dive.'},
+  {map:3,title:'5 · Rooftop Royalty',goal:2400,reward:160,story:'Keep your rhythm across the rooftops. Bounce back from a fall.'},
+  {map:5,title:'6 · The Final Summit',goal:3000,reward:200,story:'SPECIAL · Time your fall through the moving hoop above the lake.'}
 ];
 const JUMPBAR_TRICKS=[
   {id:'grab',name:'Grab',owners:[],points:'150',keys:'GRAB / ↑',how:'Hold UP or GRAB for 0.35 s in the air. Bend both knees behind you, hold your ankles and arch your chest forward. Release before landing. Scores once per jump.',unlock:'Available to every character from the start.',demo:'grab',tutorial:true},
@@ -20,7 +20,7 @@ const JUMPBAR_TRICKS=[
   {id:'salute',name:'Salute',owners:['guard'],points:'150',keys:'TRICK / E',how:'As Whistle Willie, hold TRICK for 0.4 s without tucking. One hand salutes while the other balances.',unlock:'Buy Whistle Willie for 160 coins.',demo:'salute',tutorial:true},
   {id:'star',name:'Sauna star',owners:['sauna'],points:'175',keys:'TRICK / E',how:'As Sauna Sausage, hold TRICK for 0.4 s without tucking to spread your arms and legs.',unlock:'Buy Sauna Sausage for 240 coins.',demo:'star',tutorial:true},
   {id:'pike',name:'Flipper fold',owners:['diver'],points:'200',keys:'TRICK / E',how:'As Flipper Phil, hold TRICK for 0.4 s without tucking. Fold at the hips with straight legs.',unlock:'Buy Flipper Phil for 320 coins.',demo:'pike',tutorial:true},
-  {id:'deathdive',name:'Death dive',owners:[],points:'250 · +200 timed fold',keys:'DIVE / F → TUCK',how:'Above water, hold DIVE for 0.35 s to spread out face-down. Just before impact, release DIVE and hold TUCK. Fold within the last 0.8 s for +200.',unlock:'Complete chapter 2 with 1,200 points.',demo:'deathdive',tutorial:true,chapter:1}
+  {id:'deathdive',name:'Death dive',owners:[],points:'250 · +200 timed fold',keys:'DIVE / F → TUCK',how:'Above water, hold DIVE for 0.35 s to spread out face-down. Just before impact, release DIVE and hold TUCK. Fold within the last 0.8 s for +200.',unlock:'Complete chapter 2 with 900 points.',demo:'deathdive',tutorial:true,chapter:1}
 ];
 class JumpbarCampaign {
   constructor(saved=null){

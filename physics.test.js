@@ -185,7 +185,7 @@ test('two bar courses and four water courses with forgiving entries and clean-di
   assert.equal(KAARI_MAPS.filter(m=>m.mode==='dive').length,4);
   for(const [index,map] of KAARI_MAPS.entries())if(map.mode==='dive'){
     for(const angle of [0,Math.PI,Math.PI/2]){
-      const g=new KaariPhysics(index);g.active=true;g.visited=new Set([0,1]);
+      const g=new KaariPhysics(index);g.active=true;g.visited=new Set([0,1]);g.objectives.forEach(o=>o.done=true);
       Object.assign(g.player,{bar:-1,x:g.mat.x+180,y:K_FLOOR-70,angle,tuck:0,vx:0,vy:180,momentum:0});g.ragdoll.reset(g.player);
       for(let i=0;i<120&&!g.ended;i++)g.step(dt);
       assert.equal(g.success,true);assert.ok(g.splash);assert.equal(g.crash,null);
@@ -253,7 +253,7 @@ test('bomb button curls Bruno only and creates a rewarded bomb splash',()=>{
  for(let i=0;i<300&&!g.ended;i++)g.step(dt,{bomb:true});
  assert.equal(g.success,true);assert.equal(g.splash.kind,id==='bruno'?'bomb':'normal');
  assert.equal(g.splash.points,id==='bruno'?700:500);
- assert.equal(g.events.filter(e=>e.type==='special').length,id==='bruno'?1:0);
+ assert.equal(g.events.filter(e=>e.type==='special'&&e.label==='CANNONBALL').length,id==='bruno'?1:0);
  }
 });
 test('death dive needs unlock, awards once and rewards a timely fold',()=>{
@@ -293,3 +293,16 @@ test('feet-first impact compresses the knees, settles and preserves recovery bou
 });
 
 test('best single-jump record counts valid transfers before combo bonuses',()=>{const g=new KaariPhysics();g.flightPoints=850;g.settleCombo(true);assert.equal(g.bestJump,850);g.flightPoints=1000;g.settleCombo(false);assert.equal(g.bestJump,850);g.flightPoints=950;g.settleCombo(true);assert.equal(g.bestJump,950);g.reset();assert.equal(g.bestJump,0);});
+
+test('every other story chapter has a required special objective that awards once and resets',()=>{
+ const {JUMPBAR_CHAPTERS}=require('./campaign');
+ JUMPBAR_CHAPTERS.forEach((c,i)=>assert.equal(new KaariPhysics(c.map).objectives.length>0,i%2===1));
+ for(const index of [1,2,5]){
+ const g=new KaariPhysics(index);g.active=true;g.visited=new Set([0,1]);
+ for(const o of g.objectives){Object.assign(g.player,{bar:-1,x:o.x+(o.motion||0)*Math.sin((g.courseTime+dt)*1.4),y:o.y-1,vy:300,vx:0,momentum:0,angle:0});g.ragdoll.reset(g.player);g.step(dt);assert.equal(o.done,true);const score=g.score;g.step(dt);assert.equal(g.score,score);}
+ g.player.x=g.mat.x+250;g.finish(true);assert.equal(g.success,true);g.reset();assert.ok(g.objectives.every(o=>!o.done));g.player.x=g.mat.x+250;g.finish(true);assert.equal(g.success,false);
+ }
+});
+test('the first chapter clears with bar catches and an ordinary landing, without tricks',()=>{
+ const g=new KaariPhysics();assert.equal(g.bars.length,3);g.visited=new Set([0,1,2]);g.score=200;g.player.x=g.mat.x+100;g.finish(true);const {JumpbarCampaign}=require('./campaign');assert.equal(new JumpbarCampaign().claim(g).cleared,true);
+});

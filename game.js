@@ -91,7 +91,7 @@ function showCombo(event){
   }
 }
 for(let i=0;i<12;i++)document.getElementById('combo-sparks').appendChild(document.createElement('i'));
-function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`BEST ${best}`;document.getElementById('hud-goal').textContent=`/ ${campaign.chapter(game.mapIndex).goal} PTS`;}
+function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=`BEST ${best}`;document.getElementById('hud-goal').textContent=`/ ${campaign.chapter(game.mapIndex).goal} PTS`+(game.objectives.length?' · '+(game.map.challenge==='stars'?'STARS ':'HOOP ')+game.objectives.filter(o=>o.done).length+'/'+game.objectives.length:'');}
 function updateMapCarousel(){
   const count=JUMPBAR_CHAPTERS.length,current=JUMPBAR_CHAPTERS.findIndex(c=>c.map===game.mapIndex);
   document.querySelectorAll('[data-map]').forEach(button=>{
@@ -142,12 +142,13 @@ function step(dt){
     }else if(event.type==='finish'){
       if(typeof leaderboardService!=='undefined')leaderboardService.finish();
       const reward=campaign.claim(game);saveCampaign();readBest();
-      ui['result-label'].textContent=event.splash?(!event.success?'VISIT BOTH BARS':event.splash.kind==='bomb'?'CANNONBALL +200':event.splash.kind==='deathdive'?'DEATH DIVE +200':event.splash.clean?'CLEAN DIVE +200':'SPLASH!'):event.success?'CLEAN LANDING':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'SPLASH!':'MISSED A BAR!'):event.success?'STUCK IT!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} bars / best combo ${game.maxChain} · best ${best}`;
+      ui['result-label'].textContent=event.splash?(!event.success?'VISIT BOTH BARS':event.splash.kind==='bomb'?'CANNONBALL +200':event.splash.kind==='deathdive'?'DEATH DIVE +200':event.splash.clean?'CLEAN DIVE +200':'SPLASH!'):event.success?'CLEAN LANDING':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'SPLASH!':'MISSED A BAR!'):event.success?'STUCK IT!':event.crash.title;if(event.splash&&!event.success&&game.visited.size===game.bars.length&&!game.objectives.every(o=>o.done)){ui['result-label'].textContent='SPECIAL OBJECTIVE MISSED';ui['result-title'].textContent=game.map.challenge==='stars'?'COLLECT ALL STARS!':'THROUGH THE HOOP!';}ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} bars / best combo ${game.maxChain} · best ${best}`;
       if(reward){
         document.getElementById('result-reward').textContent='+'+reward.coins+' ◈ COINS';
         const chapter=campaign.chapter(game.mapIndex),cleared=campaign.cleared(game.mapIndex),index=JUMPBAR_CHAPTERS.indexOf(chapter);
         document.getElementById('result-unlock').textContent=reward.firstClear?(reward.allClear?'From underwear to champion! Story complete. Go collect every star.':'Chapter complete! The next course is unlocked.'):cleared?'Chapter complete · aim for more stars.':event.success?'Finished! Earn another '+reward.missing+' points in a single run.':'Reach the finish with '+chapter.goal+' points to unlock the next chapter.';
         document.getElementById('next-chapter').hidden=!cleared||index===JUMPBAR_CHAPTERS.length-1;
+        if(!event.success&&game.visited.size===game.bars.length&&game.objectives.some(o=>!o.done))document.getElementById('result-unlock').textContent=game.map.challenge==='stars'?'Pass through all three star rings on your way down, then splash into the lake.':'Pass through the gold hoop on your way down, then splash into the lake.';
         if(reward.allClear&&reward.firstClear)ui['result-title'].textContent='CHAMPION!';
         if(reward.newChapter&&campaign.trickUnlocked('deathdive')&&!campaign.data.tutorialsSeen.includes('deathdive'))document.getElementById('result-unlock').textContent+=' NEW TRICK: Death dive!';
         updateCampaignMenu();

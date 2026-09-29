@@ -1,11 +1,11 @@
 ﻿'use strict';
 const KAARI_MAPS = [
-  {id:'garden',name:'Park Practice',description:'Easy · 5 bars · find your rhythm',points:[[180,220],[380,210],[590,225],[810,195],[1040,210]],landing:240,colors:['#e7ecdf','#dbe3d2','#dee6d4','#d1ddc6','#809273']},
-  {id:'coast',mode:'dive',shore:490,terrain:[[-900,70],[0,90],[180,120],[420,155],[490,155]],name:'Turquoise Bay',description:'Water jump · 2 bars · trick and splash',points:[[180,80],[420,65]],landing:1100,colors:['#e2edf0','#d1e0e4','#c8dde2','#c2d5d4','#6d919d']},
-  {id:'sunset',mode:'dive',shore:540,terrain:[[-900,260],[0,430],[180,580],[330,615],[465,650],[540,650]],name:'Golden Cliffs',description:'Water jump · 2 bars · trick and splash',points:[[180,60],[465,40]],landing:1600,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']},
+  {id:'garden',name:'Park Practice',description:'Beginner · 3 bars · learn to land',points:[[180,220],[355,220],[535,220]],landing:380,colors:['#e7ecdf','#dbe3d2','#dee6d4','#d1ddc6','#809273']},
+  {id:'coast',challenge:'hoop',mode:'dive',shore:490,terrain:[[-900,70],[0,90],[180,120],[420,155],[490,155]],name:'Turquoise Bay',description:'Water jump · 2 bars · trick and splash',points:[[180,80],[400,70]],landing:1100,colors:['#e2edf0','#d1e0e4','#c8dde2','#c2d5d4','#6d919d']},
+  {id:'sunset',challenge:'stars',mode:'dive',shore:540,terrain:[[-900,260],[0,430],[180,580],[330,615],[465,650],[540,650]],name:'Golden Cliffs',description:'Water jump · 2 bars · trick and splash',points:[[180,60],[465,40]],landing:1600,colors:['#f2e7df','#e8d7ca','#e5cdb9','#d9c4ae','#ab836e']},
   {id:'city',name:'Rooftop Run',description:'Medium · 7 bars · above the skyline',points:[[180,210],[410,190],[655,215],[915,180],[1190,205],[1450,185],[1715,210]],landing:280,colors:['#aaa9db','#c4bfe5','#8298ba','#87819d','#535774']},
   {id:'harbor',mode:'dive',shore:525,terrain:[[-900,50],[0,65],[180,95],[310,70],[450,120],[525,120]],name:'Island Hopping',description:'Water jump · 2 bars · trick and splash',points:[[180,80],[450,95]],landing:1100,colors:['#a9d6de','#c8e5e5','#6c9baa','#93aeb2','#536d79']},
-  {id:'alpine',mode:'dive',shore:550,terrain:[[-900,300],[0,650],[180,890],[340,930],[480,980],[550,980]],name:'Alpine Lake',description:'Water jump · 2 bars · trick and splash',points:[[180,50],[480,35]],landing:1900,colors:['#c7e3f6','#e1edf6','#b8d3e3','#e6edf0','#8195ac']}
+  {id:'alpine',challenge:'moving',mode:'dive',shore:550,terrain:[[-900,300],[0,650],[180,890],[340,930],[480,980],[550,980]],name:'Alpine Lake',description:'Water jump · 2 bars · trick and splash',points:[[180,50],[480,35]],landing:1900,colors:['#c7e3f6','#e1edf6','#b8d3e3','#e6edf0','#8195ac']}
 ];
 const K_TAU=Math.PI*2,K_G=720,K_FLOOR=475;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
@@ -119,6 +119,7 @@ class KaariPhysics {
     this.mapIndex=clamp(mapIndex,0,KAARI_MAPS.length-1);this.map=KAARI_MAPS[this.mapIndex];this.bars=this.map.points.map(([x,y])=>({x,y:this.map.mode==='dive'?K_FLOOR-terrainHeight(this.map,x)-160-(220-y)*.08:y+55}));this.mat={x:this.bars.at(-1).x+65,w:this.map.landing+80};
     this.water=this.map.mode==='dive';this.cliffY=K_FLOOR-terrainHeight(this.map,200);this.splash=null;
     if(this.water)this.mat.x=this.map.shore;
+    this.courseTime=0;this.objectives=(this.map.challenge==='hoop'?[{x:this.mat.x+200,y:K_FLOOR-120,r:180}]:this.map.challenge==='stars'?[{x:this.mat.x+180,y:K_FLOOR-480,r:170},{x:this.mat.x+260,y:K_FLOOR-280,r:170},{x:this.mat.x+330,y:K_FLOOR-100,r:170}]:this.map.challenge==='moving'?[{x:this.mat.x+400,y:K_FLOOR-210,r:140,motion:90}]:[]).map(o=>({...o,done:false}));
     const b=this.bars[0],angle=-.85;
     this.player={x:b.x+Math.sin(angle)*76,y:b.y+Math.cos(angle)*76,vx:0,vy:0,angle,omega:0,radius:76,tuck:0,bar:0,cooldown:0,momentum:0,twist:0,twistSpeed:0};
     this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.bestJump=0;this.chain=0;this.maxChain=0;this.flightPoints=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
@@ -177,7 +178,7 @@ class KaariPhysics {
     this.beginFlight();
   }
   finish(success){
-    if(this.ended)return;this.ended=true;this.success=success;this.settleCombo(success);
+    if(this.ended)return;success=success&&this.objectives.every(o=>o.done);this.ended=true;this.success=success;this.settleCombo(success);
     if(this.water&&this.player.x>=this.mat.x&&this.player.x<=this.mat.x+this.mat.w){
       const p=this.player,clean=Math.abs(Math.cos(p.angle))>.82&&p.tuck<.5;
       const bombEntry=this.bombActive&&this.specialAwarded&&p.tuck>.65;
@@ -212,6 +213,7 @@ class KaariPhysics {
       return;
     }
     if(!this.active){if(input.grip||input.tuck)this.active=true;else return;}
+    this.courseTime+=dt;const previousX=p.x,previousY=p.y;
     const airborne=p.bar<0&&!this.grounded;
     const bomb=airborne&&this.characterId==='bruno'&&!!input.bomb;
     const grab=airborne&&!!input.grab&&!input.bomb&&!input.dive;
@@ -277,6 +279,13 @@ class KaariPhysics {
           this.settleCombo(!this.visited.has(i));
           if(!this.visited.has(i)){this.visited.add(i);this.score+=100;this.events.push({type:'catch',index:i,x:b.x,y:b.y});}break;
         }
+      }
+    }
+    if(p.bar<0&&this.visited.size===this.bars.length){
+      for(const o of this.objectives)if(!o.done&&previousY<o.y&&p.y>=o.y){
+        const fraction=(o.y-previousY)/(p.y-previousY),crossX=previousX+(p.x-previousX)*fraction;
+        const center=o.x+(o.motion||0)*Math.sin((this.courseTime-dt+dt*fraction)*1.4);
+        if(Math.abs(crossX-center)<o.r-12){o.done=true;const points=this.map.challenge==='stars'?150:this.map.challenge==='moving'?400:200;this.score+=points;this.flightPoints+=points;this.events.push({type:'special',label:this.map.challenge==='stars'?'STAR COLLECTED':'THROUGH THE HOOP',points,x:p.x,y:p.y});}
       }
     }
     const surface=this.groundY(p.x);
