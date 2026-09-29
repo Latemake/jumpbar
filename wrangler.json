@@ -1,0 +1,6 @@
+{
+  "name": "jumpbar",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-09-01",
+  "d1_databases": [{"binding":"DB","database_name":"jumpbar-scores","database_id":"29a65ea1-93dd-4a92-9395-dc3c38fef18f"}]
+}

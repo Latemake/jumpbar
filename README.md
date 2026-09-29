@@ -155,3 +155,7 @@ Grab: hold Up / GRAB for 0.35 s to hold both ankles behind the body for 150 poin
 Neon is retired with a one-time 220-coin refund. New shop characters: Whistle Willie (160, Salute), Sauna Sausage (240, Sauna star), Flipper Phil (320, Flipper fold). Each purchase unlocks a tutorial and Trick Book entry. Their bodies, headgear and accessories are distinct; mass also affects splash size.
 
 Sound: 26 compact recorded foley/water samples plus hand-built spring and whistle accents. Pitch variations avoid identical repeated impacts. Splash pitch and loudness follow impact strength. Mute from the menu; pause for the volume slider. Audio starts on the first gesture, stops on pause/tab blur, and preferences persist. Serve the folder over HTTP(S) to load audio buffers. Sources and CC0 credits: assets/audio/CREDITS.md.
+
+## Shared records and new address
+
+Play at https://jumpbar.pages.dev/ . The menu's Leaderboards has jump, run, combo, daily streak and six course rankings. Choose a public nickname before playing to submit new runs. Streaks use UTC days and require one successful course per day. Use PLAY ONLINE on the old GitHub site to carry browser-local campaign progress to the new address. Deployment and limitations: server/README.md.

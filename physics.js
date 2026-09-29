@@ -121,7 +121,7 @@ class KaariPhysics {
     if(this.water)this.mat.x=this.map.shore;
     const b=this.bars[0],angle=-.85;
     this.player={x:b.x+Math.sin(angle)*76,y:b.y+Math.cos(angle)*76,vx:0,vy:0,angle,omega:0,radius:76,tuck:0,bar:0,cooldown:0,momentum:0,twist:0,twistSpeed:0};
-    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.chain=0;this.maxChain=0;this.flightPoints=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
+    this.ragdoll=new GymnastRagdoll(this.player);this.visited=new Set([0]);this.score=0;this.bestJump=0;this.chain=0;this.maxChain=0;this.flightPoints=0;this.airRotation=0;this.turns=0;this.twistTurns=0;this.comboAwarded=false;this.events=[];this.ended=false;this.success=false;this.active=false;this.elapsedAfterEnd=0;this.crash=null;
     this.grabTime=0;this.grabAwarded=false;this.landingVelocity=0;this.grounded=false;this.groundCharge=0;this.groundHeld=false;this.specialTime=0;this.specialAwarded=false;this.airTime=0;this.layoutRotation=0;this.layoutAwarded=false;this.rewardClaimed=false;this.deathDiveUnlocked=false;this.diveTime=0;this.diveAwarded=false;this.sinceDive=99;this.bombActive=false;
   }
   beginFlight(){
@@ -158,6 +158,7 @@ class KaariPhysics {
   groundY(x){return this.water&&x<this.mat.x?K_FLOOR-terrainHeight(this.map,x):K_FLOOR;}
   inertia(tuck){return 1-.65*tuck;}
   settleCombo(validTarget){
+    if(validTarget)this.bestJump=Math.max(this.bestJump,this.flightPoints);
     if(validTarget&&this.flightPoints>0){
       this.chain++;this.maxChain=Math.max(this.maxChain,this.chain);
       const multiplier=Math.min(6,this.chain+1),bonus=this.flightPoints*(multiplier-1);

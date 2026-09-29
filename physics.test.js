@@ -291,3 +291,5 @@ test('feet-first impact compresses the knees, settles and preserves recovery bou
  assert.ok(peak>.1);assert.ok(g.player.landingCompression<.01);assert.ok(Math.abs(g.player.angle)<.02);assert.equal(g.crash,null);
  }
 });
+
+test('best single-jump record counts valid transfers before combo bonuses',()=>{const g=new KaariPhysics();g.flightPoints=850;g.settleCombo(true);assert.equal(g.bestJump,850);g.flightPoints=1000;g.settleCombo(false);assert.equal(g.bestJump,850);g.flightPoints=950;g.settleCombo(true);assert.equal(g.bestJump,950);g.reset();assert.equal(g.bestJump,0);});

@@ -4,3 +4,6 @@ node_modules/
 Thumbs.db
 playwright-report/
 test-results/
+dist/
+.wrangler/
+.dev.vars

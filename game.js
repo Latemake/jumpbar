@@ -1,6 +1,6 @@
 ﻿'use strict';
 const canvas=document.getElementById('game');
-const ui=Object.fromEntries(['menu','hud','touch','pause','result','guide','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
+const ui=Object.fromEntries(['menu','hud','touch','pause','result','guide','boards','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
 const game=new KaariPhysics(),keys=new Set(),touchKeys=new Set();
 const touchPointers=new Map();
 const touchMode=navigator.maxTouchPoints>0||matchMedia('(any-pointer: coarse)').matches;
@@ -63,11 +63,11 @@ function held(code){return keys.has(code)||touchKeys.has(code);}
 function controls(){return{grab:held('ArrowUp'),bomb:held('KeyB')&&game.characterId==='bruno',dive:held('KeyF')&&campaign.trickUnlocked('deathdive'),special:held('KeyE'),grip:held('Space'),tuck:held('ArrowDown')||held('KeyS'),twist:Number(held('ArrowRight')||held('KeyD'))-Number(held('ArrowLeft')||held('KeyA'))};}
 function clearInput(){if(game.grounded){game.groundHeld=false;game.groundCharge=0;}keys.clear();touchKeys.clear();touchPointers.clear();document.querySelectorAll('[data-key]').forEach(b=>{b.classList.remove('pressed');b.setAttribute('aria-pressed','false');});}
 function setScreen(next){
-  if(next!==screen)sound.stop();screen=next;document.body.dataset.screen=next;clearInput();
+  const previous=screen;if(next!==screen)sound.stop();screen=next;document.body.dataset.screen=next;clearInput();
   document.getElementById('target-guide').hidden=true;
-  for(const name of ['menu','pause','result','guide'])ui[name].hidden=next!==name;
+  for(const name of ['menu','pause','result','guide','boards'])ui[name].hidden=next!==name;
   ui.hud.hidden=!['play','pause','result'].includes(next);ui.touch.hidden=next!=='play';
-  if(next==='play')canvas.focus();
+  if(next==='play'){canvas.focus();if(typeof leaderboardService!=='undefined'&&previous!=='pause')leaderboardService.start();}
   else if(next==='pause')document.getElementById('resume').focus();
   else if(next==='result')document.getElementById('again').focus();
 }
@@ -119,7 +119,7 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])mapTrack.ad
 for(const [id,direction] of [['map-prev',-1],['map-next',1]]){const button=document.getElementById(id);button.addEventListener('pointerup',e=>{if(e.button!==0)return;e.preventDefault();cycleMap(direction);});button.onclick=e=>{if(e.detail===0)cycleMap(direction);};}
 mapTrack.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();e.stopPropagation();cycleMap(e.code==='ArrowRight'?1:-1);}});
 function reset(mapIndex=game.mapIndex){
-  sound.stop();clearInput();clearCombo();game.reset(mapIndex);game.characterId=campaign.data.equipped;game.deathDiveUnlocked=campaign.trickUnlocked('deathdive');document.querySelector('[data-key=KeyB]').hidden=game.characterId!=='bruno';document.querySelector('[data-key=KeyF]').hidden=!game.deathDiveUnlocked;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
+  if(typeof leaderboardService!=='undefined')leaderboardService.reset();sound.stop();clearInput();clearCombo();game.reset(mapIndex);game.characterId=campaign.data.equipped;game.deathDiveUnlocked=campaign.trickUnlocked('deathdive');document.querySelector('[data-key=KeyB]').hidden=game.characterId!=='bruno';document.querySelector('[data-key=KeyF]').hidden=!game.deathDiveUnlocked;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
   if(touchMode)followMobilePlayer(0,true);
   updateMapCarousel();sync();
 }
@@ -140,6 +140,7 @@ function step(dt){
     sound.event(event,game);
     if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
     }else if(event.type==='finish'){
+      if(typeof leaderboardService!=='undefined')leaderboardService.finish();
       const reward=campaign.claim(game);saveCampaign();readBest();
       ui['result-label'].textContent=event.splash?(!event.success?'VISIT BOTH BARS':event.splash.kind==='bomb'?'CANNONBALL +200':event.splash.kind==='deathdive'?'DEATH DIVE +200':event.splash.clean?'CLEAN DIVE +200':'SPLASH!'):event.success?'CLEAN LANDING':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'SPLASH!':'MISSED A BAR!'):event.success?'STUCK IT!':event.crash.title;ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} bars / best combo ${game.maxChain} · best ${best}`;
       if(reward){
@@ -175,7 +176,7 @@ function draw(){const inMenu=screen==='menu',offset=inMenu?game.player.x-width/s
 function releaseIfNeeded(){if(screen==='play'&&!held('Space')&&game.active)game.release();}
 window.addEventListener('keydown',e=>{
   if(screen==='menu'&&['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();cycleCharacter(e.code==='ArrowRight'?1:-1);return;}
-  if(e.code==='Escape'){e.preventDefault();if(screen==='guide'){closeGuide();return;}if(screen==='play')pause();else if(screen==='pause')resume();return;}
+  if(e.code==='Escape'){e.preventDefault();if(screen==='boards'){document.getElementById('boards-close').click();return;}if(screen==='guide'){closeGuide();return;}if(screen==='play')pause();else if(screen==='pause')resume();return;}
   if(screen!=='play')return;
   if(e.target instanceof HTMLElement&&e.target.matches('button,a,input'))return;
   if(['Space','ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys.add(e.code);
