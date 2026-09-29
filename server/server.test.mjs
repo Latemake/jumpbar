@@ -17,6 +17,7 @@ test('global records are shared, runs are single-use, and UTC streaks cannot be 
  const start=await call('start',{map:0},a.token);now+=10000;assert.equal((await call('finish',{run:start.data.run,score:Infinity,jump:1,combo:3,success:true},a.token)).status,400);
  assert.equal((await call('finish',{run:start.data.run,score:1000,jump:500,combo:3,success:true},b.token)).status,409);
  assert.equal((await call('start',{map:0},'wrong-token')).status,401);
+ now+=3000;assert.equal((await call('start',{map:10},a.token)).status,200);assert.equal((await call('start',{map:11},a.token)).status,400);assert.equal((await call('boards?category=map10')).status,200);
  const cross=await worker.fetch(new Request('https://jumpbar.test/api/players',{method:'POST',headers:{Origin:'https://evil.test'},body:'{}'}),env);assert.equal(cross.status,403);
  }finally{Date.now=realNow;db.close();}
 });

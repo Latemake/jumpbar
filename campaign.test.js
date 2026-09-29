@@ -27,7 +27,7 @@ test('all chapters unlock in order and final completion supports star replays',(
     assert.equal(c.unlocked,i);const reward=c.claim(result(ch.map,ch.goal*2));assert.equal(reward.cleared,true);assert.equal(c.stars(ch.map),3);
     assert.equal(reward.allClear,i===JUMPBAR_CHAPTERS.length-1);
   }
-  assert.equal(c.unlocked,5);assert.equal(c.claim(result(0,900)).firstClear,false);
+  assert.equal(c.unlocked,JUMPBAR_CHAPTERS.length-1);assert.equal(c.claim(result(0,900)).firstClear,false);
 });
 test('invalid saves and non-finite scores cannot create currency or equip unknown characters',()=>{
   const c=new JumpbarCampaign({version:1,coins:-200,owned:['missing'],equipped:'astro',records:{0:{best:Infinity,successBest:NaN}}});
@@ -38,9 +38,9 @@ test('invalid saves and non-finite scores cannot create currency or equip unknow
 
 test('retired characters refund their purchase prices once and preserve chapter progress',()=>{
   const c=new JumpbarCampaign({version:1,coins:35,owned:['rookie','bruno','shadow','astro'],equipped:'astro',records:{0:{best:1500,successBest:1200}}});
-  assert.equal(c.data.coins,1155);assert.deepEqual(c.data.owned,['rookie','bruno']);assert.equal(c.data.equipped,'rookie');assert.equal(c.unlocked,1);
+  assert.equal(c.data.coins,1155);assert.deepEqual(c.data.owned,['rookie','bruno']);assert.equal(c.data.equipped,'rookie');assert.equal(c.unlocked,2);
   assert.equal(c.buy('astro'),false);assert.equal(c.buy('shadow'),false);
-  const reloaded=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(reloaded.data.coins,1155);assert.equal(reloaded.unlocked,1);
+  const reloaded=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(reloaded.data.coins,1155);assert.equal(reloaded.unlocked,2);
 });
 
 test('new trick tutorials queue only when unlocked and acknowledgements persist',()=>{
@@ -48,7 +48,7 @@ test('new trick tutorials queue only when unlocked and acknowledgements persist'
  assert.equal(c.acknowledgeTutorial('deathdive'),false);assert.equal(c.trickUnlocked('cannon'),false);
  c.acknowledgeTutorial('grab');c.acknowledgeTutorial('candle');c.claim(result(0,900));c.buy('bruno');
  assert.deepEqual(c.pendingTutorials().map(t=>t.id),['cannon']);
- c.claim(result(1,12000));assert.equal(c.trickUnlocked('deathdive'),true);
+ c.claim(result(6,1100));c.claim(result(1,12000));assert.equal(c.trickUnlocked('deathdive'),true);
  assert.deepEqual(c.pendingTutorials().map(t=>t.id),['cannon','deathdive']);
  const restored=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));
  assert.deepEqual(restored.pendingTutorials().map(t=>t.id),['cannon','deathdive']);
@@ -60,4 +60,14 @@ test('Neon retires with a single refund and new characters unlock their own tuto
  const saved=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(saved.data.coins,1220);
  for(const [id,trick] of [['guard','salute'],['sauna','star'],['diver','pike']]){assert.equal(saved.buy(id),true);assert.equal(saved.trickUnlocked(trick),true);}
  assert.deepEqual(saved.pendingTutorials().map(t=>t.id),['salute','star','pike']);
+});
+
+test('expanded world keeps legacy coins, records, unlocked courses and death dive without fake clears',()=>{
+ const old={version:1,coins:123,owned:['rookie','bruno'],equipped:'bruno',records:{0:{best:900,successBest:900},1:{best:950,successBest:950}}};
+ const c=new JumpbarCampaign(old);assert.equal(c.data.coins,123);assert.equal(c.available(4),true);assert.equal(c.available(6),true);assert.equal(c.cleared(6),false);assert.equal(c.trickUnlocked('deathdive'),true);assert.equal(c.data.records[1].successBest,950);
+ const restored=new JumpbarCampaign(c.data);assert.equal(restored.available(4),true);assert.equal(restored.trickUnlocked('deathdive'),true);assert.equal(restored.data.coins,123);
+});
+
+test('sandbox unlocks only after all story goals and never grants campaign coins',()=>{
+ const c=new JumpbarCampaign();assert.equal(c.sandboxUnlocked,false);for(const [i,ch] of JUMPBAR_CHAPTERS.entries()){c.claim(result(ch.map,ch.goal));assert.equal(c.sandboxUnlocked,i===JUMPBAR_CHAPTERS.length-1);}assert.equal(new JumpbarCampaign(c.data).sandboxUnlocked,true);const coins=c.data.coins,run=result(11,99999);run.sandbox=true;assert.equal(c.claim(run),null);assert.equal(c.data.coins,coins);
 });

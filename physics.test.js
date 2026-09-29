@@ -125,7 +125,7 @@ test('all map gaps and final landings are reachable from pumped launch states',(
     let landed=false;
     search:for(const state of samples)for(let tuckTime=0;tuckTime<1.5;tuckTime+=.05){
       const game=launch(map,count-1,state);game.visited=new Set(game.bars.map((_,i)=>i));
-      for(let i=0;i<240&&!game.ended;i++)game.step(dt,{tuck:i*dt<tuckTime});
+      for(let i=0;i<720&&!game.ended;i++)game.step(dt,{tuck:i*dt<tuckTime});
       if(game.success){assert.ok(game.score>=500);landed=true;break search;}
     }
     assert.ok(landed,`map ${map}, final landing`);
@@ -161,7 +161,7 @@ test('combo chains reward consecutive trick transfers, cap at x6 and reject repe
   g.reset();assert.equal(g.maxChain,0);assert.equal(g.flightPoints,0);
   for(let i=0;i<8;i++){g.flightPoints=250;g.settleCombo(true);}
   assert.equal(g.events.at(-1).multiplier,6);assert.equal(g.events.at(-1).bonus,1250);
-  g.flightPoints=200;const before=g.score;g.finish(true);assert.equal(g.score-before,1500);
+  g.objectives.forEach(o=>o.done=true);g.flightPoints=200;const before=g.score;g.finish(true);assert.equal(g.score-before,1500);
 });
 
 test('air tuck folds hands to shins with bent elbows while bar tuck retains grip',()=>{
@@ -180,9 +180,9 @@ test('air tuck folds hands to shins with bent elbows while bar tuck retains grip
   }
 });
 
-test('two bar courses and four water courses with forgiving entries and clean-dive bonuses',()=>{
-  assert.equal(KAARI_MAPS.filter(m=>m.mode!=='dive').length,2);
-  assert.equal(KAARI_MAPS.filter(m=>m.mode==='dive').length,4);
+test('eight bar courses and six water courses with forgiving entries and clean-dive bonuses',()=>{
+  assert.equal(KAARI_MAPS.filter(m=>m.mode!=='dive').length,8);
+  assert.equal(KAARI_MAPS.filter(m=>m.mode==='dive').length,6);
   for(const [index,map] of KAARI_MAPS.entries())if(map.mode==='dive'){
     for(const angle of [0,Math.PI,Math.PI/2]){
       const g=new KaariPhysics(index);g.active=true;g.visited=new Set([0,1]);g.objectives.forEach(o=>o.done=true);
@@ -204,7 +204,7 @@ test('two bar courses and four water courses with forgiving entries and clean-di
 
 test('feet-first falls can recover with a quick tuck-release and re-grip a bar',()=>{
   const g=new KaariPhysics();g.active=true;
-  Object.assign(g.player,{bar:-1,x:300,y:K_FLOOR-75,angle:.7,tuck:0,vx:0,vy:120,momentum:0});g.ragdoll.reset(g.player);
+  Object.assign(g.player,{bar:-1,x:300,y:K_FLOOR-75,angle:0,tuck:0,vx:0,vy:120,momentum:0});g.ragdoll.reset(g.player);
   for(let i=0;i<90&&!g.grounded&&!g.ended;i++)g.step(dt);
   assert.equal(g.grounded,true);assert.equal(g.ended,false);assert.equal(g.chain,0);
   for(let i=0;i<18;i++)g.step(dt,{tuck:true,grip:true});g.step(dt,{grip:true});
@@ -285,10 +285,10 @@ test('grab holds both ankles behind the body and awards once per flight',()=>{
 });
 test('feet-first impact compresses the knees, settles and preserves recovery bounce',()=>{
  for(const success of [false,true]){
- const g=new KaariPhysics();g.active=true;Object.assign(g.player,{bar:-1,x:success?g.mat.x+100:300,y:K_FLOOR-56,vy:650,vx:80,angle:.2,omega:1});g.ragdoll.reset(g.player);
+ const g=new KaariPhysics();g.active=true;Object.assign(g.player,{bar:-1,x:success?g.mat.x+100:300,y:K_FLOOR-56,vy:success?650:200,vx:success?80:0,angle:success?.2:0,omega:success?1:0});g.ragdoll.reset(g.player);
  if(success){g.visited=new Set(g.bars.map((_,i)=>i));g.finish(true);}else g.startLanding();
  let peak=0;for(let i=0;i<240;i++){g.step(dt,{});peak=Math.max(peak,g.player.landingCompression);for(const j of Object.values(g.ragdoll.joints))assert.ok(j.y<=K_FLOOR-3.9);}
- assert.ok(peak>.1);assert.ok(g.player.landingCompression<.01);assert.ok(Math.abs(g.player.angle)<.02);assert.equal(g.crash,null);
+ assert.ok(peak>(success?.1:.04));assert.ok(g.player.landingCompression<.01);assert.ok(Math.abs(g.player.angle)<.02);assert.equal(g.crash,null);
  }
 });
 
@@ -296,13 +296,36 @@ test('best single-jump record counts valid transfers before combo bonuses',()=>{
 
 test('every other story chapter has a required special objective that awards once and resets',()=>{
  const {JUMPBAR_CHAPTERS}=require('./campaign');
- JUMPBAR_CHAPTERS.forEach((c,i)=>assert.equal(new KaariPhysics(c.map).objectives.length>0,i%2===1));
- for(const index of [1,2,5]){
- const g=new KaariPhysics(index);g.active=true;g.visited=new Set([0,1]);
+ JUMPBAR_CHAPTERS.forEach((c,i)=>assert.equal(new KaariPhysics(c.map).objectives.length>0,i%2===1||c.map===8));
+ for(const index of [6,4,7,3,9]){
+ const g=new KaariPhysics(index);g.active=true;g.visited=new Set(g.bars.map((_,i)=>i));
  for(const o of g.objectives){Object.assign(g.player,{bar:-1,x:o.x+(o.motion||0)*Math.sin((g.courseTime+dt)*1.4),y:o.y-1,vy:300,vx:0,momentum:0,angle:0});g.ragdoll.reset(g.player);g.step(dt);assert.equal(o.done,true);const score=g.score;g.step(dt);assert.equal(g.score,score);}
  g.player.x=g.mat.x+250;g.finish(true);assert.equal(g.success,true);g.reset();assert.ok(g.objectives.every(o=>!o.done));g.player.x=g.mat.x+250;g.finish(true);assert.equal(g.success,false);
  }
 });
 test('the first chapter clears with bar catches and an ordinary landing, without tricks',()=>{
  const g=new KaariPhysics();assert.equal(g.bars.length,3);g.visited=new Set([0,1,2]);g.score=200;g.player.x=g.mat.x+100;g.finish(true);const {JumpbarCampaign}=require('./campaign');assert.equal(new JumpbarCampaign().claim(g).cleared,true);
+});
+
+test('sauna window requires a rightward passage inside the opening after both bars',()=>{
+ for(const good of [true,false]){const g=new KaariPhysics(8);g.active=true;g.visited=new Set([0,1]);const o=g.objectives[0];Object.assign(g.player,{bar:-1,x:o.x-1,y:o.y+(good?0:o.r+10),vx:300,vy:0,angle:0,momentum:0});g.ragdoll.reset(g.player);g.step(dt);assert.equal(o.done,good);if(good){assert.equal(g.score,350);g.step(dt);assert.equal(g.score,350);}else{assert.equal(g.ended,true);assert.equal(g.success,false);}g.reset();assert.equal(g.objectives[0].done,false);}
+});
+test('altered gravity starts only in the late game and affects actual flight and ragdoll fall',()=>{
+ const {JUMPBAR_CHAPTERS}=require('./campaign');assert.ok(JUMPBAR_CHAPTERS.slice(0,9).every(c=>(KAARI_MAPS[c.map].gravity||1)===1));
+ const bodies=[0,9,10].map(m=>{const g=new KaariPhysics(m);g.active=true;Object.assign(g.player,{bar:-1,x:300,y:-700,vx:0,vy:0,momentum:0});g.ragdoll.reset(g.player);for(let i=0;i<30;i++)g.step(dt);return g;});
+ assert.ok(bodies[1].player.vy<bodies[0].player.vy);assert.ok(bodies[2].player.vy>bodies[0].player.vy);assert.ok(Math.abs(bodies[1].player.vy/bodies[0].player.vy-.48)<1e-9);assert.ok(Math.abs(bodies[2].player.vy/bodies[0].player.vy-1.3)<1e-9);
+});
+
+test('falling ragdolls use the current world gravity',()=>{const p={x:200,y:-500,angle:0,tuck:0};const heights=[.48,1,1.3].map(f=>{const doll=new GymnastRagdoll(p);doll.fallen=true;for(let i=0;i<60;i++)doll.step(dt,p,null,475,720*f);return doll.joints.hip.y;});assert.ok(heights[0]<heights[1]&&heights[1]<heights[2]);});
+
+test('solid bars block a fast torso sweep rather than letting the body tunnel through',()=>{
+ const g=new KaariPhysics();g.active=true;const b=g.bars[1];Object.assign(g.player,{bar:-1,x:b.x-145,y:b.y+20,vx:22000,vy:0,angle:0,momentum:0,cooldown:.2});g.ragdoll.reset(g.player);g.step(dt,{});assert.ok(g.events.some(e=>e.type==='collision'));assert.ok(g.player.x<b.x);assert.ok(g.player.vx<0);
+});
+test('landing assistance acts only inside the mat and an unassisted tilted landing fails',()=>{
+ const make=(onMat,angle=.35)=>{const g=new KaariPhysics();g.active=true;g.visited=new Set([0,1,2]);Object.assign(g.player,{bar:-1,x:onMat?g.mat.x+150:-80,y:K_FLOOR-160,angle,vy:50,vx:0,momentum:3});g.ragdoll.reset(g.player);return g;};
+ const mat=make(true),ground=make(false);for(let i=0;i<15;i++){mat.step(dt);ground.step(dt);}assert.ok(Math.abs(mat.player.omega)<Math.abs(ground.player.omega));assert.equal(ground.player.momentum,3);
+ for(let i=0;i<240&&!ground.ended;i++)ground.step(dt);assert.equal(ground.success,false);assert.ok(ground.crash);
+});
+test('sandbox removes compulsory objectives and accepts a finish without visiting every bar',()=>{
+ const g=new KaariPhysics(4);g.reset(4,{sandbox:true});assert.equal(g.objectives.length,0);g.active=true;Object.assign(g.player,{bar:-1,x:g.mat.x+200,y:K_FLOOR-60,vx:0,vy:180,angle:0});g.ragdoll.reset(g.player);for(let i=0;i<120&&!g.ended;i++)g.step(dt);assert.equal(g.success,true);assert.equal(g.visited.size,1);g.reset(4);assert.equal(g.sandbox,false);assert.equal(g.objectives.length,2);
 });

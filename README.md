@@ -106,20 +106,19 @@ rock formations, shoreline scenery, animated water, spray and expanding ripples.
 
 ## Campaign and characters
 
-The six chapters now unlock in order: park, turquoise bay, archipelago,
-golden cliffs, rooftops, mountain lake. A successful finish must meet that
+The eleven chapters unlock in the order listed under Expanded world. A successful finish must meet that
 chapter's score goal. Replays earn up to three stars. All gates can be reached
 with the free starter character; characters are optional purchases.
 
 Campaign progress uses `jumpbar-campaign-v1` in localStorage. Runs grant coins
 on the results screen (including trick earnings on failed runs), successful
-finishes add 20, and first chapter clears add 60-200. Each run can be claimed
+finishes add 20, and first chapter clears add 60-280. Each run can be claimed
 once and first-clear bonuses cannot repeat. Old sandbox records are retained
 under their old storage keys but do not unlock campaign chapters.
 
 Boxer Barry starts in patterned underwear. The shop adds Big Bruno, Whistle Willie, Sauna Sausage and Flipper Phil.
 Hold E / TRICK for the character's signature pose. Bruno also has a dedicated
-B / BOMB button that automatically tucks. Clear chapter 2 to unlock F / DIVE:
+B / BOMB button that automatically tucks. Clear chapter 3 to unlock F / DIVE:
 hold for 0.35 seconds, then release and tuck within 0.8 seconds of water entry
 for the timed-fold bonus. Each special scores once per flight.
 
@@ -158,4 +157,18 @@ Sound: 26 compact recorded foley/water samples plus hand-built spring and whistl
 
 ## Shared records and new address
 
-Play at https://jumpbar.pages.dev/ . The menu's Leaderboards has jump, run, combo, daily streak and six course rankings. Choose a public nickname before playing to submit new runs. Streaks use UTC days and require one successful course per day. Use PLAY ONLINE on the old GitHub site to carry browser-local campaign progress to the new address. Deployment and limitations: server/README.md.
+Play at https://jumpbar.pages.dev/ . The menu's Leaderboards has jump, run, combo, daily streak and eleven course rankings. Choose a public nickname before playing to submit new runs. Streaks use UTC days and require one successful course per day. Use PLAY ONLINE on the old GitHub site to carry browser-local campaign progress to the new address. Deployment and limitations: server/README.md.
+
+
+## Expanded world
+
+Eleven chapters: Park Practice, Flip Academy, Sandy Splash, Pebble Cove, Amber Arch, Dune Dash, Sauna Escape, Rooftop Run, Alpine Lake, Moon Motel, Ironworks. New courses retain stable map IDs for existing records. Legacy saves retain coins, characters, earlier course access and unlocked death dive. New players progress through all eleven chapters.
+
+Even chapters have required fire-ring or star objectives; Sauna Escape also requires passing through its window after both bars. Fire rings animate; moving rings use simulation time. Moon Motel (chapter 10) uses 0.48× gravity and Ironworks (chapter 11) uses 1.30× gravity for swings, flight and falling ragdolls. Earlier chapters use normal gravity. Large terrain and water extend beyond wide cliff views. Thumbnails are renders of the actual environments. All eleven courses have global leaderboard categories.
+
+
+## Completion reward and physical contacts
+
+Clear all eleven story goals to unlock Sandbox in the menu. Free play includes all story environments plus Endless Recess (12 bars), Cloud Drop (a 1,200-unit cliff) and Orbit Playground (0.35× gravity). Sandbox removes compulsory objectives and bar visitation requirements, grants no campaign currency and never submits competitive leaderboard results.
+
+Airborne bodies and limbs collide with the crossbars using swept contact checks; a hit rebounds and breaks the combo. Gripping remains possible. Landing alignment and spin braking apply only over the landing mat. Outside it, a recovery needs a nearly upright body, low spin, modest sideways speed and a survivable downward speed. Ground balance outside the mat no longer automatically rights a tilted body.

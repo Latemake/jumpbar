@@ -8,7 +8,7 @@ class KaariRenderer {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,this.mobile?1.5:2));
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.15;
-    this.scene=new THREE.Scene();this.camera=new THREE.OrthographicCamera(-400,400,240,-240,.1,4500);
+    this.scene=new THREE.Scene();this.camera=new THREE.OrthographicCamera(-400,400,240,-240,.1,14000);
     this.sphere=new THREE.SphereGeometry(1,20,14);this.cylinder=new THREE.CylinderGeometry(1,1,1,14);this.box=new THREE.BoxGeometry(1,1,1);
     this.mountainGeometry=new THREE.ConeGeometry(1,1,6);
     this.rockGeometry=new THREE.DodecahedronGeometry(1,0);
@@ -168,7 +168,7 @@ class KaariRenderer {
     this.world.clear();for(const m of materials)m.dispose();for(const t of textures)t.dispose();
   }
   buildLandmarks(game,length){
-    const id=game.map.id;this.landmarkKind=id;
+    const id=(game.map.theme||game.map.id);this.landmarkKind=id;
     const cream=this.material('#f0e2bb'),steel=this.material('#53697a'),wood=this.material('#8c684a');
     if(id==='city'){
       const canvas=document.createElement('canvas');canvas.width=128;canvas.height=256;const c=canvas.getContext('2d');c.fillStyle='#344567';c.fillRect(0,0,128,256);
@@ -208,30 +208,86 @@ class KaariRenderer {
       for(let i=0;i<8;i++){this.ball(i*180+80,7,-95,22,roof,this.world,1,.5,.5);}
     }
   }
+  buildThemedGround(game,length){
+    const id=(game.map.theme||game.map.id);this.landmarkKind=id;
+    const metal=this.material('#46566a',.42,.5),cream=this.material('#ffecc9'),wood=this.material('#a8683e');
+    const ground=this.material(id==='gym'?'#438fbe':id==='desert'?'#e9b665':id==='moon'?'#777c9c':'#514550');
+    this.block(length/2,-20,-1500,22000,35,18000,ground);
+    if(id==='gym'){
+      const wall=this.material('#d8edf1'),blue=this.material('#215488'),red=this.material('#e64f59'),foam=this.material('#4ca9c7');
+      this.block(length/2,850,-360,12000,1750,25,wall);this.block(length/2,95,-342,12000,190,20,blue);
+      for(let x=-1800;x<length+2200;x+=360){this.block(x,560,-340,225,230,12,blue);this.block(x,565,-330,201,204,4,this.material('#91dcf2'));this.block(x,565,-320,8,210,8,cream);this.block(x,560,-320,205,8,8,cream);this.rod([x,0,-280],[x,1400,-280],9,metal);this.block(x,1100,-290,320,16,20,metal);}
+      this.block(length/2,1,0,length+1000,5,240,foam);
+      for(let x=-180;x<length+200;x+=180){this.block(x,4,0,2,1,235,cream);}
+      for(let i=0;i<5;i++){const x=50+i*290;this.block(x,10,-190,140,20,65,i%2?red:blue);this.rod([x-45,22,-190],[x+45,22,-190],5,cream);}
+      for(const x of [230,670,1110]){for(const dx of [-28,28]){this.rod([x+dx,690,-250],[x+dx,315,-250],1.8,cream);const geo=new THREE.TorusGeometry(18,3,7,32);geo.userData.worldOwned=true;const ring=this.mesh(geo,wood);ring.position.set(x+dx,295,-250);}}
+      const label=this.label('FLIP ACADEMY','#244d7d',70);label.position.set(length/2,890,-318);this.world.add(label);
+      for(let i=0;i<7;i++){const x=50+i*170;this.block(x,780,-319,62,95,5,i%2?red:blue);}
+    }else if(id==='desert'){
+      const sand=this.material('#f7cc7f'),stone=this.material('#c88449'),green=this.material('#5d865a');
+      for(let i=0;i<22;i++){const x=-4500+i*600;this.ball(x,-50,-1100-(i%3)*450,380+(i%4)*60,sand,this.world,2.2,.75,1.7);}
+      for(const x of [-450,850,2100,3550]){const g=new THREE.ConeGeometry(240,380,4);g.userData.worldOwned=true;const pyramid=this.mesh(g,stone);pyramid.position.set(x,190,-750);pyramid.rotation.y=Math.PI/4;}
+      for(let i=0;i<18;i++){const x=-600+i*220,z=-160-i%3*110;this.rod([x,0,z],[x,90,z],9,green);this.ball(x,90,z,9,green);this.rod([x,40,z],[x+26,40,z],6,green);this.rod([x+26,40,z],[x+26,70,z],6,green);}
+      for(const x of [720,1740]){for(const dx of [-85,85])this.block(x+dx,100,-320,48,200,65,stone);this.block(x,211,-320,230,35,90,sand);}
+      this.ball(1750,1000,-2800,190,this.material('#ffedb0'),this.world);
+      this.block(length/2,0,0,length+500,3,160,this.material('#df9b4e'));
+    }else if(id==='moon'){
+      const pale=this.material('#a4aec7'),dark=this.material('#484d71'),cyan=this.material('#74e6dd');
+      for(let i=0;i<25;i++){const x=-2400+i*270,z=-200-i%5*260;this.ball(x,-12,z,70+i%4*20,dark,this.world,1.5,.18,1);const geo=new THREE.TorusGeometry(1,.12,6,32);geo.userData.worldOwned=true;const crater=this.mesh(geo,pale);crater.rotation.x=Math.PI/2;crater.scale.setScalar(70+i%4*20);crater.position.set(x,0,z);}
+      for(let i=0;i<55;i++)this.ball(-1600+(i*173)%6500,160+(i*79)%750,-750-i%3*160,3+i%3,cream);
+      this.ball(900,380,-850,160,this.material('#4ba4d9'));this.ball(860,420,-710,68,this.material('#8bddb0'),this.world,1.5,.5,.2);
+      this.ball(580,90,-390,150,pale,this.world,1,.7,.8);this.block(580,45,-268,155,80,8,dark);for(let i=0;i<4;i++)this.block(524+i*36,62,-260,23,28,4,cyan);
+      const label=this.label('MOON MOTEL · VACANCY','#a3fff0',33);label.position.set(580,217,-290);this.world.add(label);
+      this.rod([1070,0,-230],[1070,170,-230],6,pale);const dish=this.ball(1070,175,-230,65,cream,this.world,1,.2,1);dish.rotation.z=-.5;this.rod([1070,175,-230],[1095,245,-230],2,metal);
+    }else{
+      const iron=this.material('#332e3c',.5,.65),rust=this.material('#a86a4b'),hot=this.material('#ff7c31');hot.emissive.set('#c5350a');
+      this.block(length/2,800,-650,16000,1700,60,iron);
+      for(let x=-1600;x<length+3000;x+=420){this.block(x,500,-400,30,1000,35,rust);this.block(x,820,-340,340,28,60,rust);this.block(x+100,115,-330,175,230,90,metal);this.block(x+100,88,-280,110,130,8,hot);this.rod([x+100,230,-330],[x+100,620,-330],23,rust);this.rod([x,660,-380],[x+390,660,-380],12,metal);for(let j=0;j<3;j++)this.ball(x+100+j*8,650+j*42,-330,27+j*8,this.material('#80717c'),this.world,1,1.3,1);}
+      for(let x=-300;x<length+400;x+=55){this.block(x,1,0,8,3,200,iron);}
+      for(let x=-100;x<length+400;x+=140){const stripe=this.block(x,3,110,70,2,12,this.material('#ffc450'));stripe.rotation.y=-.35;}
+      const label=this.label('IRONWORKS · 1.30 G','#ffd77b',48);label.position.set(length/2,1030,-390);this.world.add(label);
+    }
+  }
+  buildSauna(game){
+    const floor=220,edge=game.mat.x-10,wood=this.material('#a86a42'),light=this.material('#e2aa71'),dark=this.material('#453d3c'),hot=this.material('#ff9c48');hot.emissive.set('#a23a0a');
+    this.block(230,floor-8,0,660,16,240,wood);
+    for(let y=floor+10;y<550;y+=25)this.block(235,y,-118,650,23,25,y%50<25?wood:light);
+    this.block(235,560,-100,700,25,120,dark);
+    for(let y=floor+10;y<545;y+=25)this.block(-95,y,0,24,23,240,wood);
+    this.block(100,floor+32,-68,230,14,65,light);this.block(100,floor+12,-68,210,12,55,wood);
+    this.block(335,floor+50,-75,65,100,70,dark);this.block(335,floor+37,-37,35,30,3,hot);this.rod([335,floor+105,-75],[335,620,-75],12,dark);
+    for(let i=0;i<7;i++)this.ball(315+(i%3)*19,floor+109+(i%2)*7,-90+Math.floor(i/3)*15,11,this.material('#7f827a'));
+    for(let i=0;i<6;i++){const steam=this.material('#eee8d5');steam.transparent=true;steam.opacity=.2;this.ball(330+Math.sin(i)*20,365+i*24,-80,18+i*3,steam,this.world,1,1.5,1);}
+    // The near wall is deliberately open like a dollhouse so the player remains visible.
+    this.block(edge,242.5,0,16,45,250,wood);this.block(edge,545,0,16,60,250,wood);
+    const sign=this.label('SAUNA · EXIT →','#ffe9bd',27);sign.position.set(240,520,-99);this.world.add(sign);
+    for(let i=0;i<12;i++)this.block(game.mat.x+30+i*18,10,-165,16,7,80,wood);
+    this.ball(game.mat.x+650,5,-260,46,this.material('#ffc456'),this.world,1.8,.25,.55);
+  }
   buildDiveMap(game,length){
-    const warm=game.map.id==='sunset',alpine=game.map.id==='alpine',islands=game.map.id==='harbor';
-    this.landmarkKind=game.map.id;
-    const rock=this.material(warm?'#b66d46':alpine?'#738899':'#81918a'),lightRock=this.material(warm?'#e4a36d':'#b3b7a1');
-    const grass=this.material(alpine?'#aac5b3':islands?'#5a9566':'#83ba75');
+    const warm=(game.map.theme||game.map.id)==='sunset',alpine=(game.map.theme||game.map.id)==='alpine',islands=(game.map.theme||game.map.id)==='harbor',beach=(game.map.theme||game.map.id)==='coast',sauna=(game.map.theme||game.map.id)==='sauna';
+    this.landmarkKind=(game.map.theme||game.map.id);
+    const rock=this.material(warm?'#b66d46':alpine?'#738899':beach?'#e5be7e':'#81918a'),lightRock=this.material(warm?'#e4a36d':'#b3b7a1');
+    const grass=this.material(alpine?'#aac5b3':beach?'#ffe0a3':islands?'#a0afa0':'#83ba75');
     const water=this.material(warm?'#369fa7':alpine?'#237eaa':'#16b9bd',.18,.3),foam=this.material('#c7fff0',.4);
     const edge=game.mat.x;
-    const points=game.map.terrain.filter(([x])=>x>=-900),shape=new THREE.Shape();
-    shape.moveTo(-900,-35);shape.lineTo(edge-90,-35);
+    const points=game.map.terrain,shape=new THREE.Shape();
+    shape.moveTo(-6000,-35);shape.lineTo(edge-90,-35);
     const summit=terrainHeight(game.map,edge);
     if(alpine){shape.lineTo(edge+45,summit*.08);shape.lineTo(edge-55,summit*.28);shape.lineTo(edge+15,summit*.46);shape.lineTo(edge-45,summit*.67);shape.lineTo(edge+22,summit*.84);}
     else if(warm){shape.lineTo(edge-55,summit*.15);shape.lineTo(edge-95,summit*.46);shape.lineTo(edge-38,summit*.78);}
     else if(islands){shape.lineTo(edge+50,12);shape.lineTo(edge+24,45);shape.lineTo(edge-15,82);}
-    else{shape.lineTo(edge+65,8);shape.lineTo(edge+38,50);shape.lineTo(edge+12,95);}
+    else if(beach){shape.lineTo(edge+25,0);shape.lineTo(edge+8,summit*.5);}else{shape.lineTo(edge+25,8);shape.lineTo(edge-10,summit*.5);}
     shape.lineTo(edge,summit);
     for(const [x,h] of [...points].reverse())shape.lineTo(x,h);
     shape.closePath();
     if(warm){const arch=new THREE.Path();arch.absellipse(280,summit*.34,110,summit*.26,0,Math.PI*2,true);shape.holes.push(arch);}
-    const geo=new THREE.ExtrudeGeometry(shape,{depth:180,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:9,bevelThickness:8});geo.userData.worldOwned=true;
-    const land=this.mesh(geo,rock);land.position.z=-90;
+    const geo=new THREE.ExtrudeGeometry(shape,{depth:480,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:9,bevelThickness:8});geo.userData.worldOwned=true;
+    const land=this.mesh(geo,rock);land.position.z=-390;
     // A sloping lip follows the actual collision surface, not a rectangular cap.
     for(let i=1;i<points.length;i++){
       const [a,h]=points[i-1],[b,k]=points[i],dx=b-a,dy=k-h;
-      const lip=this.block((a+b)/2,(h+k)/2+1,0,Math.hypot(dx,dy),5,172,alpine?lightRock:grass);lip.rotation.z=Math.atan2(dy,dx);
+      const lip=this.block((a+b)/2,(h+k)/2+1,-150,Math.hypot(dx,dy),5,480,alpine?lightRock:grass);lip.rotation.z=Math.atan2(dy,dx);
     }
     for(let i=0;i<12;i++){
       const x=-300+i*65;if(x>edge-35)continue;
@@ -243,9 +299,9 @@ class KaariRenderer {
       for(let i=0;i<5;i++){const isle=this.mesh(this.rockGeometry,rock);isle.position.set(edge+250+i*180,10,-170-i%2*70);isle.scale.set(70,28+i%2*20,55);this.ball(edge+250+i*180,27,-170-i%2*70,45,grass,this.world,1,.18,.8);}
     }
     water.transparent=true;water.opacity=.32;water.depthWrite=false;
-    const surface=this.block(edge+game.mat.w/2,-2,-280,game.mat.w+1400,3,3200,water);surface.castShadow=false;surface.receiveShadow=false;
+    const surface=this.block(edge+game.mat.w/2,-2,-280,22000,3,18000,water);surface.castShadow=false;surface.receiveShadow=false;
     const deep=this.material(alpine?'#155b7b':'#137e89');
-    this.block(edge+game.mat.w/2,-310,-280,game.mat.w+1400,20,3200,deep);
+    this.block(edge+game.mat.w/2,-310,-280,22000,20,18000,deep);
     this.waterStreaks=[];
     for(let i=0;i<65;i++){
       const x=edge+40+(i*137)%(game.mat.w+400),z=-650+(i*97)%1050;
@@ -253,9 +309,9 @@ class KaariRenderer {
     }
     // Separate silhouettes for the four destinations: sandstone arches,
     // forested islands, alpine peaks, and a tropical limestone cove.
-    for(let i=0;i<11;i++){
-      const x=-400+i*210,z=-480-(i%3)*120,h=alpine?320+(i%4)*110:110+(i%4)*45;
-      const peak=this.mesh(alpine?this.mountainGeometry:this.rockGeometry,i%2?rock:lightRock);peak.position.set(x,h/2-20,z);peak.scale.set(alpine?160:110,alpine?h:h*.65,130);peak.rotation.y=i*.7;
+    for(let i=0;i<28;i++){
+      const x=-4500+i*460,z=-1300-(i%3)*350,h=alpine?500+(i%4)*210:warm?200+(i%4)*110:90+(i%4)*45;
+      const peak=this.mesh(alpine?this.mountainGeometry:this.rockGeometry,i%2?rock:lightRock);peak.position.set(x,h/2-20,z);peak.scale.set(alpine?330:240,alpine?h:h*.65,280);peak.rotation.y=i*.7;
       if(alpine){const cap=this.mesh(this.mountainGeometry,this.material('#e8f3f5'));cap.position.set(x,h*.82-20,z);cap.scale.set(58,h*.36,47);cap.rotation.y=peak.rotation.y;}
       else if(!warm){for(let k=0;k<4;k++)this.ball(x-48+k*30,h*.87-22+(k%2)*10,z,30,grass,this.world,1.2,.65,1);}
     }
@@ -279,13 +335,19 @@ class KaariRenderer {
         for(let i=0;i<4;i++)this.makeTree(edge+630+i*90,-380,150,'coast');
       }
     }
-    if(alpine||game.map.id==='coast'){
+    if(alpine){
       const x=edge+440,z=-410,fallMat=this.material('#b8f0ed',.2);
       const cliff=this.mesh(this.rockGeometry,rock);cliff.position.set(x,80,z-25);cliff.scale.set(65,125,55);
       this.block(x,92,z+25,19,182,3,fallMat);
       this.block(x+5,88,z+28,5,174,2,foam);
       for(let i=0;i<6;i++)this.ball(x-22+i*9,3,z+25,11,foam,this.world,1,.3,1);
     }
+    if(beach){
+      const coral=this.material('#f87564'),white=this.material('#fff0cf'),sand=this.material('#ffe0a3');
+      for(let i=0;i<7;i++){const x=-800+i*175,h=terrainHeight(game.map,x),z=-180-i%2*130;this.rod([x,h,z],[x,h+65,z],2,white);this.ball(x,h+65,z,45,i%2?coral:white,this.world,1,.24,1);this.block(x+35,h+2,z+25,35,3,60,i%2?white:coral);}
+      for(let i=0;i<7;i++)this.ball(-600+i*140,15,-650,125,sand,this.world,1.5,.3,1);
+    }
+    if(sauna)this.buildSauna(game);
     // Shore foam marks where the safe water begins.
     for(let i=0;i<9;i++)this.ball(edge+10,0,-75+i*20,14,foam,this.world,.7,.07,1);
     this.splashGroup=new THREE.Group();this.world.add(this.splashGroup);this.splashGroup.visible=false;
@@ -306,19 +368,19 @@ class KaariRenderer {
     this.ripples.forEach((m,i)=>{const size=8+Math.max(0,t-i*.16)*90;m.scale.setScalar(size);m.position.y=.5+i*.1;m.visible=t>i*.16;});
   }
   buildMap(game){
-    this.clearWorld();this.mapIndex=game.mapIndex;const coast=this.mapIndex===1,sunset=this.mapIndex===2;
-    const sky=this.mapIndex>2?game.map.colors[0]:sunset?'#eea9a4':coast?'#69cdeb':'#8edcdb';this.scene.background=new THREE.Color(sky);this.scene.fog=new THREE.Fog(sky,1500,3500);
-    this.sun.color.set(sunset?'#ffc592':'#fff2d8');this.sun.intensity=sunset?3.8:3.4;
+    this.clearWorld();this.mapIndex=game.mapIndex;this.sandbox=game.sandbox;const coast=this.mapIndex===1,sunset=this.mapIndex===2;
+    const sky=this.mapIndex>2?game.map.colors[0]:sunset?'#eea9a4':coast?'#69cdeb':'#8edcdb';this.scene.background=new THREE.Color(sky);this.scene.fog=new THREE.Fog(sky,4000,12500);
+    this.sun.color.set(sunset?'#ffc592':'#fff2d8');this.sun.intensity=(game.map.theme||game.map.id)==='moon'?1.3:sunset?3.8:3.4;this.hemi.intensity=(game.map.theme||game.map.id)==='moon'?1.1:2.5;
     this.hemi.groundColor.set(sunset?'#8e786a':coast?'#779994':'#6c8869');
     const length=game.mat.x+game.mat.w+280;
     this.splashGroup=null;this.waterStreaks=[];
-    if(game.water){this.buildDiveMap(game,length);}else{
-    const ground=this.material(this.mapIndex>2?game.map.colors[3]:coast?'#e9ca8b':sunset?'#b3a176':'#88bb69');this.block(length/2,game.map.id==='city'?-520:-28,-200,length+2400,30,2500,ground);
+    if(game.water){this.buildDiveMap(game,length);}else if(['gym','desert','moon','foundry'].includes((game.map.theme||game.map.id))){this.buildThemedGround(game,length);}else{
+    const ground=this.material(this.mapIndex>2?game.map.colors[3]:coast?'#e9ca8b':sunset?'#b3a176':'#88bb69');this.block(length/2,(game.map.theme||game.map.id)==='city'?-520:-28,-200,22000,30,18000,ground);
     const concrete=this.material('#d9d7c9'),edge=this.material('#8caaa1'),deck=this.material(sunset?'#d9b99b':coast?'#c4c8b6':'#bcc9ad');
     this.block(length/2,-13,0,length+240,20,170,concrete);this.block(length/2,-2,0,length+200,3,145,deck);
     this.block(length/2,-5,78,length+230,13,6,edge);
     const lane=this.material('#eaf0d4');for(const z of [-57,57])this.block(length/2,.1,z,length+150,.4,1.8,lane);
-    const seam=this.material(game.map.id==='city'?'#53677c':'#a6b59c');for(let x=-80;x<length+160;x+=70)this.block(x,-.1,0,.7,.5,140,seam);
+    const seam=this.material((game.map.theme||game.map.id)==='city'?'#53677c':'#a6b59c');for(let x=-80;x<length+160;x+=70)this.block(x,-.1,0,.7,.5,140,seam);
     if(coast){
       const sea=this.material('#729eac',.25,.25);this.block(length/2,-10,-610,length+2200,2,720,sea);
       const foam=this.material('#bdd8d5');for(let i=0;i<16;i++)this.block(i*180-400,-8.7,-430-(i%4)*90,80+(i%3)*30,.3,2,foam);
@@ -332,7 +394,7 @@ class KaariRenderer {
       const x=i*250-350,z=-190-(i%3)*65;this.makeTree(x,z,135+(i%3)*25,coast?'coast':sunset?'sunset':'garden');
       if(i%2===0){this.block(x+75,8,-120,63,6,23,stone);for(const dx of [-22,22])this.block(x+75+dx,0,-120,4,17,20,dark);}
     }
-    const backWall=this.material(game.map.id==='city'?'#5c7084':sunset?'#c7b3a0':'#b8c6b2');this.block(length/2,16,-110,length+450,35,8,backWall);
+    const backWall=this.material((game.map.theme||game.map.id)==='city'?'#5c7084':sunset?'#c7b3a0':'#b8c6b2');this.block(length/2,16,-110,length+450,35,8,backWall);
     this.block(length/2,36,-110,length+470,5,15,concrete);
     this.buildLandmarks(game,length);
     }
@@ -354,12 +416,24 @@ class KaariRenderer {
       const label=this.label(String(i+1).padStart(2,'0'),'#426158',12);label.position.set(b.x,y+25,0);this.world.add(label);
     });
     this.objectiveMeshes=game.objectives.map((o,i)=>{
-      const group=new THREE.Group();this.world.add(group);
-      const gold=this.material('#ffdc55',.3,.45);gold.emissive.set('#684616');
-      const geo=new THREE.TorusGeometry(1,.022,8,64);geo.userData.worldOwned=true;
-      const hoop=this.mesh(geo,gold,group);hoop.rotation.x=Math.PI/2;hoop.scale.set(o.r,55,o.r);
-      const label=this.label(game.map.challenge==='stars'?'★ '+(i+1):game.map.challenge==='moving'?'MOVING HOOP':'FLY THROUGH','#fff2a3',17);label.position.set(0,28,0);group.add(label);
-      if(game.map.challenge==='stars'){const star=this.mesh(this.stars[0].geometry,gold,group);star.scale.setScalar(2.5);star.position.y=8;}
+      const group=new THREE.Group();this.world.add(group);group.userData.flames=[];
+      if(o.axis==='x'){
+        const wood=this.material('#f4ce91');
+        for(const z of [-85,85])this.rod([0,-o.r,z],[0,o.r,z],6,wood,group);
+        for(const y of [-o.r,o.r])this.rod([0,y,-90],[0,y,90],6,wood,group);
+        const label=this.label('OUT THE WINDOW →','#fff4c9',22);label.position.set(0,o.r+35,0);group.add(label);
+      }else if(game.map.challenge==='stars'){
+        const gold=this.material('#ffdc55',.3,.45);gold.emissive.set('#684616');
+        const star=this.mesh(this.stars[0].geometry,gold,group);star.scale.setScalar(4);star.position.y=8;
+        const label=this.label('★ '+(i+1),'#fff2a3',22);label.position.set(0,45,0);group.add(label);
+
+      }else{
+        const ember=this.material('#ff6220',.3,.5),orange=new THREE.MeshBasicMaterial({color:'#ff6b16',side:THREE.DoubleSide}),yellow=new THREE.MeshBasicMaterial({color:'#ffe88c',side:THREE.DoubleSide});ember.emissive.set('#b93808');
+        const outline=new THREE.Shape();outline.moveTo(-.5,0);outline.bezierCurveTo(-.85,.35,-.15,.5,-.25,.82);outline.bezierCurveTo(.05,.68,.18,.82,.12,1.15);outline.bezierCurveTo(.75,.62,.4,.52,.55,.3);outline.bezierCurveTo(.75,.02,.2,-.12,-.5,0);const flameGeo=new THREE.ShapeGeometry(outline);flameGeo.userData.worldOwned=true;
+        const geo=new THREE.TorusGeometry(1,.021,8,64);geo.userData.worldOwned=true;const hoop=this.mesh(geo,ember,group);hoop.rotation.x=Math.PI/2;hoop.scale.set(o.r,55,o.r);
+        for(let n=0;n<32;n++){const a=n*Math.PI*2/32,x=Math.cos(a)*o.r,z=Math.sin(a)*55;const flame=this.mesh(flameGeo,orange,group);flame.position.set(x,0,z);flame.scale.set(13,23+n%4*4,1);const core=this.mesh(flameGeo,yellow,flame);core.scale.set(.48,.63,1);core.position.z=.3;flame.rotation.z=-Math.cos(a)*.2;group.userData.flames.push(flame);}
+        const label=this.label(o.motion?'MOVING FIRE RING':'THROUGH THE FIRE','#ffe1b8',18);label.position.set(0,48,0);group.add(label);
+      }
       group.position.set(o.x,K_FLOOR-o.y,0);return group;
     });
     if(game.water)return;
@@ -372,9 +446,9 @@ class KaariRenderer {
   resize(){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.renderer.setSize(r.width,r.height,false);const half=240*r.width/r.height;Object.assign(this.camera,{left:-half,right:half,top:240,bottom:-240});this.camera.updateProjectionMatrix();}
   draw(game,offset,trail,particles,focusY=160,viewHeight=480){
     const inMenu=document.body.dataset.screen==='menu',time=performance.now()/1000;
-    if(this.mapIndex!==game.mapIndex)this.buildMap(game);
+    if(this.mapIndex!==game.mapIndex||this.sandbox!==game.sandbox)this.buildMap(game);
     this.drawWater(game,time);
-    (this.objectiveMeshes||[]).forEach((group,i)=>{const o=game.objectives[i];group.position.set(o.x+(o.motion||0)*Math.sin(game.courseTime*1.4),K_FLOOR-o.y,0);group.visible=!o.done;});
+    (this.objectiveMeshes||[]).forEach((group,i)=>{const o=game.objectives[i];group.position.set(o.x+(o.motion||0)*Math.sin(game.courseTime*1.4),K_FLOOR-o.y,0);group.visible=!o.done||o.axis==='x';for(const [n,f] of group.userData.flames.entries()){f.scale.y=23+(n%4)*4+Math.sin(time*11+n*2.1)*9;f.position.y=0;f.rotation.z=Math.sin(time*8+n)*.22;}});
     this.person.visible=true;
     if(game.splash&&!inMenu&&!this.mobile)focusY+=(Math.min(focusY,-30)-focusY)*Math.min(1,game.elapsedAfterEnd*3);
     const halfHeight=viewHeight/2,halfWidth=halfHeight*this.width/this.height;
@@ -423,14 +497,14 @@ class KaariRenderer {
     this.targetGuide.hidden=true;
     if(this.mobile&&document.body.dataset.screen==='play'&&!game.ended){
       const index=game.bars.findIndex((_,i)=>!game.visited.has(i));
-      const target=index<0?{x:game.mat.x+game.mat.w/2,y:K_FLOOR-10}:game.bars[index];
+      const objective=game.objectives.find(o=>!o.done);const target=index<0?(objective?{x:objective.x+(objective.motion||0)*Math.sin(game.courseTime*1.4),y:objective.y}:{x:game.mat.x+Math.min(500,game.mat.w/2),y:K_FLOOR-10}):game.bars[index];
       const v=new THREE.Vector3(target.x,K_FLOOR-target.y,0).project(this.camera);
       if(Math.abs(v.x)>.86||Math.abs(v.y)>.8){
         this.targetGuide.hidden=false;
         this.targetGuide.style.left=`${clamp(v.x*.5+.5,.10,.90)*100}%`;
         this.targetGuide.style.top=`${clamp(-v.y*.5+.5,.18,.68)*100}%`;
         const arrow=Math.abs(v.x)>.86?(v.x>0?'→':'←'):(v.y>0?'↑':'↓');
-        this.targetGuide.textContent=`${index<0?(game.water?'WATER':'FINISH'):String(index+1).padStart(2,'0')} ${arrow}`;
+        this.targetGuide.textContent=`${index<0?(objective?(objective.axis==='x'?'WINDOW':game.map.challenge==='stars'?'STAR':'FIRE'):(game.water?'WATER':'FINISH')):String(index+1).padStart(2,'0')} ${arrow}`;
       }
     }
     this.labels.replaceChildren();for(const p of particles){const v=new THREE.Vector3(p.x,K_FLOOR-p.y,0).project(this.camera),el=document.createElement('span');el.textContent=p.label;el.style.left=`${(v.x*.5+.5)*100}%`;el.style.top=`${(-v.y*.5+.5)*100}%`;el.style.opacity=Math.min(1,p.life);this.labels.appendChild(el);}

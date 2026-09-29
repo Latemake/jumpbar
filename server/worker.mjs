@@ -2,7 +2,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const DAY=86400000;
 const day=ms=>new Date(ms).toISOString().slice(0,10);
 const hash=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value))),x=>x.toString(16).padStart(2,'0')).join('');
-export const categories=['jump','score','combo','streak','active',...Array.from({length:6},(_,i)=>'map'+i)];
+export const categories=['jump','score','combo','streak','active',...Array.from({length:11},(_,i)=>'map'+i)];
 export function validResult(b,run,now){return Number.isSafeInteger(b.score)&&b.score>=0&&b.score<=250000&&Number.isSafeInteger(b.jump)&&b.jump>=0&&b.jump<=b.score&&Number.isSafeInteger(b.combo)&&b.combo>=0&&b.combo<=6&&typeof b.success==='boolean'&&now-run.started>=2000&&now-run.started<=20*60000&&b.score<=(now-run.started)/1000*2000;}
 async function body(req){if(Number(req.headers.get('Content-Length'))>2048)throw Error('Request too large');const text=await req.text();if(text.length>2048)throw Error('Request too large');return JSON.parse(text);}
 async function player(req,db){const token=req.headers.get('Authorization')?.replace(/^Bearer /,'');if(!token||token.length>150)return null;return db.prepare('SELECT * FROM players WHERE token_hash=?').bind(await hash(token)).first();}
@@ -27,7 +27,7 @@ async function api(req,env){
  }
  const p=await player(req,db);if(!p)return json({error:'Choose a nickname to join.'},401);
  if(req.method==='POST'&&path==='/api/start'){
-  const b=await body(req);if(!Number.isInteger(b.map)||b.map<0||b.map>5)return json({error:'Invalid course'},400);
+  const b=await body(req);if(!Number.isInteger(b.map)||b.map<0||b.map>10)return json({error:'Invalid course'},400);
   const allowed=await db.prepare('UPDATE players SET last_start=? WHERE id=? AND last_start<=? RETURNING id').bind(now,p.id,now-2000).first();if(!allowed)return json({error:'Wait a moment before starting again.'},429);
   const id=crypto.randomUUID();await db.batch([db.prepare('INSERT INTO runs(id,player_id,started,map) VALUES(?,?,?,?)').bind(id,p.id,now,b.map),db.prepare('DELETE FROM runs WHERE started<?').bind(now-20*60000),db.prepare('DELETE FROM limits WHERE expires<?').bind(now)]);return json({run:id});
  }

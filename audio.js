@@ -58,7 +58,8 @@ class JumpbarAudio {
     if(e.type==='ground'){this.sample(this.pick(['impactSoft_heavy_000','impactSoft_heavy_001']),.42,pitch);this.sample(game.map.id==='alpine'?'footstep_snow_000':'footstep_grass_000',.23);}
     else if(e.type==='bounce'){this.spring(pitch);this.sample('cloth2',.2);}
     else if(e.type==='flip'||e.type==='twist'){if(this.available('spin',.15))this.sample(this.pick(['knifeSlice','knifeSlice2']),.26,e.type==='twist'?1.5:1.05);}
-    else if(e.type==='special'){if(e.label==='STAR COLLECTED'||e.label==='THROUGH THE HOOP'){this.sample('impactBell_heavy_000',.2,e.label==='STAR COLLECTED'?1.6:1.2);this.sample('handleCoins2',.25,1.2,.08);}else{this.character(game.characterId);if(e.label==='GRAB')this.sample('cloth2',.28,.9);}}
+    else if(e.type==='collision'){this.sample('impactMetal_light_000',.3,.8);this.sample('impactSoft_heavy_000',.25,1.1);}
+    else if(e.type==='special'){if(e.label==='STAR COLLECTED'||e.label==='THROUGH THE FIRE'||e.label==='WINDOW ESCAPE'){this.sample('impactBell_heavy_000',.2,e.label==='STAR COLLECTED'?1.6:1.2);this.sample('handleCoins2',.25,1.2,.08);}else{this.character(game.characterId);if(e.label==='GRAB')this.sample('cloth2',.28,.9);}}
     else if(e.type==='chain'||e.type==='combo'){this.sample(this.pick(['impactTin_medium_000','impactTin_medium_001']),.25,1+Math.min(6,e.chain||2)*.15);this.sample('handleCoins2',.25,1.15,.09);}
     else if(e.type==='chainBreak')this.sample('cloth3',.15,.65);
     else if(e.type==='finish'){
