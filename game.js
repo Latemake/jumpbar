@@ -1,6 +1,6 @@
 ﻿'use strict';
 const canvas=document.getElementById('game');
-const ui=Object.fromEntries(['menu','hud','touch','pause','result','guide','boards','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
+const ui=Object.fromEntries(['menu','hud','touch','pause','result','guide','boards','codes','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
 const game=new KaariPhysics(),keys=new Set(),touchKeys=new Set();
 let gameMode='story';
 function courseList(){return [...KAARI_MAPS.flatMap((m,map)=>m.sandboxOnly?[{map,title:m.name,story:m.description,goal:0}]:[]),...JUMPBAR_CHAPTERS];}
@@ -19,13 +19,13 @@ function updateCampaignMenu(){
   const c=JUMPBAR_CHARACTERS.find(c=>c.id===selectedCharacter),owned=campaign.owns(c.id),chapter=courseList().find(c=>c.map===game.mapIndex),unlocked=canPlayMap(game.mapIndex);
   document.getElementById('wallet').textContent='◈ '+campaign.data.coins;
   document.getElementById('character-ability').textContent=c.ability+' · '+c.instruction;
-  const buy=document.getElementById('buy-character');buy.hidden=owned;buy.disabled=campaign.data.coins<c.price;buy.textContent=buy.disabled?'◈ '+c.price+' · need '+(c.price-campaign.data.coins):'BUY · ◈ '+c.price;
+  const buy=document.getElementById('buy-character');buy.hidden=owned;buy.disabled=!c.rewardOnly&&campaign.data.coins<c.price;buy.textContent=c.rewardOnly?'REDEEM A CODE':buy.disabled?'◈ '+c.price+' · need '+(c.price-campaign.data.coins):'BUY · ◈ '+c.price;
   document.getElementById('chapter-title').textContent=chapter.title;
   document.getElementById('chapter-goal').textContent=gameMode==='sandbox'?'FREE PLAY · NO FINISH LINE':unlocked?'TARGET '+chapter.goal+' PTS · '+('★'.repeat(campaign.stars(game.mapIndex))||'☆☆☆'):(gameMode==='sandbox'?'LOCKED · complete the story':'LOCKED · finish the previous chapter');
   document.getElementById('chapter-story').textContent=chapter.story;document.getElementById('mode-name').textContent=gameMode==='sandbox'?'SANDBOX':'STORY';
   const play=document.getElementById('play');play.disabled=!owned||!unlocked;play.textContent=!unlocked?'LOCKED':!owned?'SELECT OWNED':gameMode==='sandbox'?'FREE PLAY ↗':campaign.cleared(game.mapIndex)?'PLAY AGAIN ↗':'START CHAPTER ↗';
 }
-document.getElementById('buy-character').onclick=()=>{if(campaign.buy(selectedCharacter)){saveCampaign();selectCharacter(selectedCharacter);}};
+document.getElementById('buy-character').onclick=()=>{if(JUMPBAR_CHARACTERS.find(c=>c.id===selectedCharacter)?.rewardOnly){document.getElementById('codes-open').click();return;}if(campaign.buy(selectedCharacter)){saveCampaign();selectCharacter(selectedCharacter);}};
 function selectCharacter(id){
   const character=JUMPBAR_CHARACTERS.find(c=>c.id===id)||JUMPBAR_CHARACTERS[0];
   selectedCharacter=character.id;graphics.setCharacter(character.id);
@@ -69,7 +69,7 @@ function clearInput(){if(game.grounded){game.groundHeld=false;game.groundCharge=
 function setScreen(next){
   const previous=screen;if(next!==screen)sound.stop();screen=next;document.body.dataset.screen=next;clearInput();
   document.getElementById('target-guide').hidden=true;
-  for(const name of ['menu','pause','result','guide','boards'])ui[name].hidden=next!==name;
+  for(const name of ['menu','pause','result','guide','boards','codes'])ui[name].hidden=next!==name;
   ui.hud.hidden=!['play','pause','result'].includes(next);ui.touch.hidden=next!=='play';
   if(next==='play'){canvas.focus();if(typeof leaderboardService!=='undefined'&&previous!=='pause')leaderboardService.start();}
   else if(next==='pause')document.getElementById('resume').focus();
@@ -187,7 +187,7 @@ function draw(){const inMenu=screen==='menu',offset=inMenu?game.player.x-width/s
 function releaseIfNeeded(){if(screen==='play'&&!held('Space')&&game.active)game.release();}
 window.addEventListener('keydown',e=>{
   if(screen==='menu'&&['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();cycleCharacter(e.code==='ArrowRight'?1:-1);return;}
-  if(e.code==='Escape'){e.preventDefault();if(screen==='boards'){document.getElementById('boards-close').click();return;}if(screen==='guide'){closeGuide();return;}if(screen==='play')pause();else if(screen==='pause')resume();return;}
+  if(e.code==='Escape'){e.preventDefault();if(screen==='codes'){document.getElementById('codes-close').click();return;}if(screen==='boards'){document.getElementById('boards-close').click();return;}if(screen==='guide'){closeGuide();return;}if(screen==='play')pause();else if(screen==='pause')resume();return;}
   if(screen!=='play')return;
   if(e.target instanceof HTMLElement&&e.target.matches('button,a,input'))return;
   if(['Space','ArrowDown','ArrowUp','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();keys.add(e.code);
@@ -228,3 +228,8 @@ let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((tim
 
 
 
+
+document.getElementById('codes-open').onclick=()=>{setScreen('codes');document.getElementById('code-status').textContent='Codes ignore uppercase and lowercase.';document.getElementById('code-reward').hidden=true;document.getElementById('code-input').value='';document.getElementById('code-input').focus();};
+document.getElementById('codes-close').onclick=()=>{setScreen('menu');document.getElementById('codes-open').focus();};
+document.getElementById('code-view').onclick=()=>{setScreen('menu');};
+document.getElementById('code-form').onsubmit=e=>{e.preventDefault();const result=campaign.redeemCode(document.getElementById('code-input').value),status=document.getElementById('code-status');document.getElementById('code-reward').hidden=!result.ok;status.textContent=result.ok?'Unlocked! Chef Arjun is ready to play.':result.status==='already'?'You already redeemed this reward.':'Code not found. Check it and try again.';if(result.ok){saveCampaign();selectCharacter(result.character);sound.ui('buy');document.getElementById('code-view').focus();}else if(result.status==='already')saveCampaign();};

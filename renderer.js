@@ -118,6 +118,14 @@ class KaariRenderer {
       for(const y of [7,16]){const ring=this.mesh(new THREE.TorusGeometry(11,1,6,20),band,this.headGroup);ring.rotation.x=Math.PI/2;ring.position.set(1,y,-1);}
       for(const x of [-6,6])this.ball(x,-1,8,2.5,this.material('#e77470'),this.headGroup,1,.7,.3);
     }
+    if(c.id==='arjun'){
+      cap.visible=false;
+      const band=this.mesh(new THREE.CylinderGeometry(9,9.5,7,24),white,this.headGroup);band.position.y=10;
+      for(const [x,y,z,r] of [[-6,17,0,6],[0,20,0,7],[6,17,0,6],[0,17,5,6]])this.ball(x,y,z,r,white,this.headGroup,1,1.05,1);
+      for(const x of [-3.7,3.7]){const m=this.ball(x,-2.9,9.8,2.5,hair,this.headGroup,1.7,.5,.55);m.rotation.z=x>0?.3:-.3;this.ball(x*1.85,-1.5,9.8,1.1,hair,this.headGroup,.65,1,.65);}
+      const apron=this.ball(0,-.22,.83,1,white,this.torso,.6,.65,.16);
+      for(const x of [-.28,.28])for(const y of [.35,.58])this.ball(x,y,.94,.045,ink,this.torso);
+    }
     if(c.id==='diver'){
       cap.visible=false;const rubber=this.material('#23374c'),glass=this.material('#73e5ed',.2,.3),orange=this.material('#ffb52e');
       this.ball(0,2,-1,10.5,rubber,this.headGroup,1,1.05,1);

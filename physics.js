@@ -30,6 +30,7 @@ const JUMPBAR_CHARACTERS=[
   {id:'bruno',name:'Big Bruno',style:'Big belly. Bigger bounce.',price:80,mass:120,body:1.65,bare:true,skin:'#b97953',shirt:'#b97953',pants:'#e96b57',shoe:'#f6d569',hair:'#4b3027',badge:'',ability:'Cannonball',instruction:'Hold BOMB / B to curl up. Stay tucked for the splash.',special:'cannon',specialPoints:150,spin:.9,bounce:1.12},
   {id:'guard',name:'Whistle Willie',style:'All moustache. Absolutely no swimming licence.',price:160,mass:62,body:.8,bare:true,skin:'#d99b72',shirt:'#d99b72',pants:'#ed443e',shoe:'#fff3dc',hair:'#623723',ability:'Salute',instruction:'Hold TRICK without tucking for 0.4 s. Salute the beach.',special:'salute',specialPoints:150,spin:1.12,bounce:1},
   {id:'sauna',name:'Sauna Sausage',style:'One more round. Still wearing the bucket.',price:240,mass:105,body:1.5,bare:true,skin:'#e5a58d',shirt:'#e5a58d',pants:'#f4e9ca',shoe:'#e5a58d',hair:'#ded6c5',ability:'Sauna star',instruction:'Hold TRICK without tucking for 0.4 s. Spread out and cool off.',special:'star',specialPoints:175,spin:.95,bounce:1.15},
+  {id:'arjun',name:'Chef Arjun',style:'Indian street-food chef. Big hat. Bigger airtime.',price:0,rewardOnly:true,mass:82,body:1.1,skin:'#a56b46',shirt:'#ef8b32',pants:'#247f82',shoe:'#653f30',hair:'#302323',ability:'Flying platter',instruction:'Hold TRICK without tucking for 0.4 s. Serve a mid-air special.',special:'serve',specialPoints:175,spin:1.04,bounce:1.06},
   {id:'diver',name:'Flipper Phil',style:'Feet first. The rest arrives eventually.',price:320,mass:70,body:.85,skin:'#bd895e',shirt:'#f4c635',pants:'#263b55',shoe:'#ffb52e',hair:'#302c28',ability:'Flipper fold',instruction:'Hold TRICK without tucking for 0.4 s. Show off those ridiculous flippers.',special:'pike',specialPoints:200,spin:1.08,bounce:1.05},
 ];
 
@@ -52,7 +53,7 @@ class GymnastRagdoll {
     // fixed instead; blend with tuck so opening the body also opens the arms.
     const fold=t*t*(3-2*t);
     const shinGrip=airTuck?[knee[0]+(foot[0]-knee[0])*.22,knee[1]+(foot[1]-knee[1])*.22]:[knee[0]+2,knee[1]+4];
-    const hand=bar?[(bar.x-p.x)*c-(bar.y-p.y)*s,(bar.x-p.x)*s+(bar.y-p.y)*c]:special==='pike'?[36,-22]:special==='deathdive'?[20,-21]:special==='star'?[39,-40]:special==='candle'?[5,20]:[shinGrip[0]*fold,-65+(shinGrip[1]+65)*fold];
+    const hand=bar?[(bar.x-p.x)*c-(bar.y-p.y)*s,(bar.x-p.x)*s+(bar.y-p.y)*c]:special==='serve'?[29,-18]:special==='pike'?[36,-22]:special==='deathdive'?[20,-21]:special==='star'?[39,-40]:special==='candle'?[5,20]:[shinGrip[0]*fold,-65+(shinGrip[1]+65)*fold];
     const dx=hand[0],dy=hand[1]+21,d=Math.hypot(dx,dy)||1;
     const bend=Math.sqrt(Math.max(0,23*23-Math.min(d,46)**2/4));
     const side=bar?(dy<=0?1:-1):airTuck?1:-1;

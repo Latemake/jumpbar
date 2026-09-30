@@ -177,3 +177,8 @@ Airborne bodies and limbs collide with the crossbars using swept contact checks;
 ## Free playgrounds
 
 The three sandbox parks are at the left of the story carousel and remain completion rewards. They have no landing mat, route requirement or result screen. Falls and water entries automatically return to the last caught bar while keeping the session score. The parks contain raised vault boxes, forward-launching spring beds and rail-mounted moving bars; moving bars transfer their velocity on release. A spring bed also helps recover between the middle bars in Flip Academy. On sandbox ground, twist arrows move sideways and a quick tuck-release jumps.
+
+
+## Reward codes
+
+Open CODES in the menu. `start26` unlocks Chef Arjun, an Indian street-food chef with a tall chef hat, curled moustache and orange/teal outfit, plus the Flying platter signature trick. Codes ignore letter case and surrounding whitespace. A reward can be redeemed once per campaign save; ownership, equipped character and redeemed codes persist in localStorage. Reward-only characters cannot be bought for coins. New trick tutorials use the existing next-play queue.

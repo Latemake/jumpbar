@@ -25,14 +25,17 @@ const JUMPBAR_TRICKS=[
   {id:'salute',name:'Salute',owners:['guard'],points:'150',keys:'TRICK / E',how:'As Whistle Willie, hold TRICK for 0.4 s without tucking. One hand salutes while the other balances.',unlock:'Buy Whistle Willie for 160 coins.',demo:'salute',tutorial:true},
   {id:'star',name:'Sauna star',owners:['sauna'],points:'175',keys:'TRICK / E',how:'As Sauna Sausage, hold TRICK for 0.4 s without tucking to spread your arms and legs.',unlock:'Buy Sauna Sausage for 240 coins.',demo:'star',tutorial:true},
   {id:'pike',name:'Flipper fold',owners:['diver'],points:'200',keys:'TRICK / E',how:'As Flipper Phil, hold TRICK for 0.4 s without tucking. Fold at the hips with straight legs.',unlock:'Buy Flipper Phil for 320 coins.',demo:'pike',tutorial:true},
+  {id:'serve',name:'Flying platter',owners:['arjun'],points:'175',keys:'TRICK / E',how:'As Chef Arjun, hold TRICK for 0.4 s in the air without tucking. Bring both hands forward and serve a flying platter. Scores once per jump.',unlock:'Unlock Chef Arjun with a reward code.',demo:'serve',tutorial:true},
   {id:'deathdive',name:'Death dive',owners:[],points:'250 · +200 timed fold',keys:'DIVE / F → TUCK',how:'Above water, hold DIVE for 0.35 s to spread out face-down. Just before impact, release DIVE and hold TUCK. Fold within the last 0.8 s for +200.',unlock:'Complete chapter 3 with 1,100 points.',demo:'deathdive',tutorial:true,chapter:1}
 ];
+const JUMPBAR_CODES=Object.freeze({start26:{character:'arjun'}});
 class JumpbarCampaign {
   constructor(saved=null){
     const chars=typeof JUMPBAR_CHARACTERS!=='undefined'?JUMPBAR_CHARACTERS:require('./physics').JUMPBAR_CHARACTERS;
-    this.characters=chars;this.data={version:1,worldVersion:2,unlockedFloor:0,legacyDeathDive:false,coins:0,owned:['rookie'],equipped:'rookie',records:{},tutorialsSeen:[]};
+    this.characters=chars;this.data={version:1,worldVersion:2,unlockedFloor:0,legacyDeathDive:false,coins:0,redeemedCodes:[],owned:['rookie'],equipped:'rookie',records:{},tutorialsSeen:[]};
     if(saved&&saved.version===1){
       const integer=n=>Number.isSafeInteger(n)&&n>=0?n:0;
+      this.data.redeemedCodes=Array.isArray(saved.redeemedCodes)?[...new Set(saved.redeemedCodes.filter(c=>typeof c==='string').map(c=>c.trim().toLowerCase()).filter(c=>Object.hasOwn(JUMPBAR_CODES,c)))]:[];
       this.data.coins=integer(saved.coins);this.data.legacyDeathDive=saved.worldVersion===2?saved.legacyDeathDive===true:(saved.records?.[1]?.successBest||0)>=900;
       // Retired characters are removed from the next save, making refunds
       // idempotent when that save is loaded again.
@@ -56,9 +59,16 @@ class JumpbarCampaign {
   pendingTutorials(){return JUMPBAR_TRICKS.filter(t=>t.tutorial&&this.trickUnlocked(t.id)&&!this.data.tutorialsSeen.includes(t.id));}
   acknowledgeTutorial(id){if(!this.trickUnlocked(id))return false;if(!this.data.tutorialsSeen.includes(id))this.data.tutorialsSeen.push(id);return true;}
   equip(id){if(!this.owns(id))return false;this.data.equipped=id;return true;}
+  redeemCode(input){
+    const code=typeof input==='string'?input.trim().toLowerCase():'';
+    if(!Object.hasOwn(JUMPBAR_CODES,code))return {ok:false,status:'invalid'};
+    const {character}=JUMPBAR_CODES[code];
+    if(this.data.redeemedCodes.includes(code)||this.owns(character)){if(!this.data.redeemedCodes.includes(code))this.data.redeemedCodes.push(code);return {ok:false,status:'already',character};}
+    this.data.redeemedCodes.push(code);this.data.owned.push(character);this.data.equipped=character;return {ok:true,status:'unlocked',character};
+  }
   buy(id){
     const character=this.characters.find(c=>c.id===id);
-    if(!character||this.owns(id)||this.data.coins<character.price)return false;
+    if(!character||character.rewardOnly||this.owns(id)||this.data.coins<character.price)return false;
     this.data.coins-=character.price;this.data.owned.push(id);this.data.equipped=id;return true;
   }
   claim(game){
