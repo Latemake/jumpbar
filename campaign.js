@@ -28,14 +28,15 @@ const JUMPBAR_TRICKS=[
   {id:'serve',name:'Flying platter',owners:['arjun'],points:'175',keys:'TRICK / E',how:'As Chef Arjun, hold TRICK for 0.4 s in the air without tucking. Bring both hands forward and serve a flying platter. Scores once per jump.',unlock:'Unlock Chef Arjun with a reward code.',demo:'serve',tutorial:true},
   {id:'deathdive',name:'Death dive',owners:[],points:'250 · +200 timed fold',keys:'DIVE / F → TUCK',how:'Above water, hold DIVE for 0.35 s to spread out face-down. Just before impact, release DIVE and hold TUCK. Fold within the last 0.8 s for +200.',unlock:'Complete chapter 3 with 1,100 points.',demo:'deathdive',tutorial:true,chapter:1}
 ];
-const JUMPBAR_CODES=Object.freeze({start26:{character:'arjun'}});
+const JUMPBAR_CODES=Object.freeze({start26:{character:'arjun'},jump67:{allLevels:true}});
 class JumpbarCampaign {
   constructor(saved=null){
     const chars=typeof JUMPBAR_CHARACTERS!=='undefined'?JUMPBAR_CHARACTERS:require('./physics').JUMPBAR_CHARACTERS;
-    this.characters=chars;this.data={version:1,worldVersion:2,unlockedFloor:0,legacyDeathDive:false,coins:0,redeemedCodes:[],owned:['rookie'],equipped:'rookie',records:{},tutorialsSeen:[]};
+    this.characters=chars;this.data={version:1,worldVersion:2,unlockedFloor:0,allLevelsUnlocked:false,legacyDeathDive:false,coins:0,redeemedCodes:[],owned:['rookie'],equipped:'rookie',records:{},tutorialsSeen:[]};
     if(saved&&saved.version===1){
       const integer=n=>Number.isSafeInteger(n)&&n>=0?n:0;
       this.data.redeemedCodes=Array.isArray(saved.redeemedCodes)?[...new Set(saved.redeemedCodes.filter(c=>typeof c==='string').map(c=>c.trim().toLowerCase()).filter(c=>Object.hasOwn(JUMPBAR_CODES,c)))]:[];
+      this.data.allLevelsUnlocked=saved.allLevelsUnlocked===true;
       this.data.coins=integer(saved.coins);this.data.legacyDeathDive=saved.worldVersion===2?saved.legacyDeathDive===true:(saved.records?.[1]?.successBest||0)>=900;
       // Retired characters are removed from the next save, making refunds
       // idempotent when that save is loaded again.
@@ -48,9 +49,9 @@ class JumpbarCampaign {
       this.data.tutorialsSeen=JUMPBAR_TRICKS.filter(t=>t.tutorial&&Array.isArray(saved.tutorialsSeen)&&saved.tutorialsSeen.includes(t.id)&&!(t.id==='pike'&&saved.owned?.includes('neon')&&!saved.owned?.includes('diver'))).map(t=>t.id);
     }
   }
-  get sandboxUnlocked(){return JUMPBAR_CHAPTERS.every(c=>this.cleared(c.map));}
+  get sandboxUnlocked(){return this.data.allLevelsUnlocked||JUMPBAR_CHAPTERS.every(c=>this.cleared(c.map));}
   chapter(map){return JUMPBAR_CHAPTERS.find(c=>c.map===map);}
-  get unlocked(){let n=this.data.unlockedFloor;while(n<JUMPBAR_CHAPTERS.length-1&&this.cleared(JUMPBAR_CHAPTERS[n].map))n++;return n;}
+  get unlocked(){if(this.data.allLevelsUnlocked)return JUMPBAR_CHAPTERS.length-1;let n=this.data.unlockedFloor;while(n<JUMPBAR_CHAPTERS.length-1&&this.cleared(JUMPBAR_CHAPTERS[n].map))n++;return n;}
   available(map){const index=JUMPBAR_CHAPTERS.findIndex(c=>c.map===map);return index>=0&&index<=this.unlocked;}
   cleared(map){return(this.data.records[map]?.successBest||0)>=(this.chapter(map)?.goal||Infinity);}
   stars(map){const score=this.data.records[map]?.successBest||0,goal=this.chapter(map)?.goal||Infinity;return score>=goal*2?3:score>=goal*1.5?2:score>=goal?1:0;}
@@ -61,11 +62,17 @@ class JumpbarCampaign {
   equip(id){if(!this.owns(id))return false;this.data.equipped=id;return true;}
   redeemCode(input){
     const code=typeof input==='string'?input.trim().toLowerCase():'';
+    if(code==='reset')return {ok:false,status:'confirm-reset'};
     if(!Object.hasOwn(JUMPBAR_CODES,code))return {ok:false,status:'invalid'};
+    if(JUMPBAR_CODES[code].allLevels){
+      if(this.data.redeemedCodes.includes(code))return {ok:false,status:'already'};
+      this.data.redeemedCodes.push(code);this.data.allLevelsUnlocked=true;return {ok:true,status:'levels'};
+    }
     const {character}=JUMPBAR_CODES[code];
     if(this.data.redeemedCodes.includes(code)||this.owns(character)){if(!this.data.redeemedCodes.includes(code))this.data.redeemedCodes.push(code);return {ok:false,status:'already',character};}
     this.data.redeemedCodes.push(code);this.data.owned.push(character);this.data.equipped=character;return {ok:true,status:'unlocked',character};
   }
+  resetProgress(){this.data=new JumpbarCampaign().data;}
   buy(id){
     const character=this.characters.find(c=>c.id===id);
     if(!character||character.rewardOnly||this.owns(id)||this.data.coins<character.price)return false;

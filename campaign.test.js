@@ -75,3 +75,17 @@ test('sandbox unlocks only after all story goals and never grants campaign coins
 test('reward codes ignore case and surrounding whitespace and unlock a persistent character once',()=>{
  const c=new JumpbarCampaign();const original=JSON.stringify(c.data);for(const code of ['','wrong','__proto__','constructor',null]){assert.equal(c.redeemCode(code).status,'invalid');assert.equal(JSON.stringify(c.data),original);}assert.equal(c.buy('arjun'),false);assert.equal(c.redeemCode('  StArT26  ').ok,true);assert.equal(c.owns('arjun'),true);assert.equal(c.data.equipped,'arjun');assert.equal(c.trickUnlocked('serve'),true);assert.equal(c.pendingTutorials().some(t=>t.id==='serve'),true);assert.equal(c.data.coins,0);for(const code of ['start26','START26','sTaRt26'])assert.equal(c.redeemCode(code).status,'already');assert.equal(c.data.owned.filter(c=>c==='arjun').length,1);const loaded=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(loaded.owns('arjun'),true);assert.equal(loaded.redeemCode('START26').status,'already');assert.equal(loaded.data.equipped,'arjun');assert.equal(loaded.data.coins,0);
 });
+
+test('JUMP67 unlocks every map persistently without inventing scores or coins',()=>{
+ const c=new JumpbarCampaign();assert.equal(c.redeemCode('  JuMp67 ').status,'levels');
+ for(const chapter of JUMPBAR_CHAPTERS){assert.equal(c.available(chapter.map),true);assert.equal(c.cleared(chapter.map),false);}
+ assert.equal(c.sandboxUnlocked,true);assert.equal(c.data.coins,0);assert.deepEqual(c.data.records,{});
+ const loaded=new JumpbarCampaign(JSON.parse(JSON.stringify(c.data)));assert.equal(loaded.sandboxUnlocked,true);assert.equal(loaded.unlocked,JUMPBAR_CHAPTERS.length-1);assert.equal(loaded.redeemCode('JUMP67').status,'already');
+});
+test('RESET only requests confirmation; explicit reset clears campaign and permits redeeming again',()=>{
+ const c=new JumpbarCampaign();c.redeemCode('start26');c.redeemCode('jump67');c.data.coins=900;c.data.records[0]={best:1000,successBest:1000};c.acknowledgeTutorial('grab');
+ const before=JSON.stringify(c.data);assert.equal(c.redeemCode(' ReSeT ').status,'confirm-reset');assert.equal(JSON.stringify(c.data),before);
+ c.resetProgress();assert.deepEqual(c.data,new JumpbarCampaign().data);assert.equal(c.sandboxUnlocked,false);assert.equal(c.unlocked,0);
+ assert.deepEqual(new JumpbarCampaign(JSON.parse(JSON.stringify(c.data))).data,c.data);
+ assert.equal(c.redeemCode('START26').ok,true);assert.equal(c.redeemCode('JUMP67').ok,true);
+});

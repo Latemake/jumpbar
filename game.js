@@ -229,7 +229,27 @@ let last=0,accumulator=0;function frame(time){if(last)accumulator+=Math.min((tim
 
 
 
-document.getElementById('codes-open').onclick=()=>{setScreen('codes');document.getElementById('code-status').textContent='Codes ignore uppercase and lowercase.';document.getElementById('code-reward').hidden=true;document.getElementById('code-input').value='';document.getElementById('code-input').focus();};
-document.getElementById('codes-close').onclick=()=>{setScreen('menu');document.getElementById('codes-open').focus();};
+let resetCodePending=false;
+function cancelCodeReset(){resetCodePending=false;document.getElementById('code-reset-warning').hidden=true;}
+document.getElementById('codes-open').onclick=()=>{cancelCodeReset();setScreen('codes');document.getElementById('code-status').textContent='Codes ignore uppercase and lowercase.';document.getElementById('code-reward').hidden=true;document.getElementById('code-input').value='';document.getElementById('code-input').focus();};
+document.getElementById('codes-close').onclick=()=>{cancelCodeReset();setScreen('menu');document.getElementById('codes-open').focus();};
 document.getElementById('code-view').onclick=()=>{setScreen('menu');};
-document.getElementById('code-form').onsubmit=e=>{e.preventDefault();const result=campaign.redeemCode(document.getElementById('code-input').value),status=document.getElementById('code-status');document.getElementById('code-reward').hidden=!result.ok;status.textContent=result.ok?'Unlocked! Chef Arjun is ready to play.':result.status==='already'?'You already redeemed this reward.':'Code not found. Check it and try again.';if(result.ok){saveCampaign();selectCharacter(result.character);sound.ui('buy');document.getElementById('code-view').focus();}else if(result.status==='already')saveCampaign();};
+document.getElementById('code-input').oninput=()=>{cancelCodeReset();document.getElementById('code-reward').hidden=true;document.getElementById('code-status').textContent='';};
+document.getElementById('code-reset-cancel').onclick=()=>{cancelCodeReset();document.getElementById('code-status').textContent='Reset cancelled. Your progress is safe.';document.getElementById('code-input').value='';document.getElementById('code-input').focus();};
+document.getElementById('code-reset-confirm').onclick=()=>{
+  if(!resetCodePending||screen!=='codes')return;
+  cancelCodeReset();campaign.resetProgress();saveCampaign();selectCharacter('rookie');reset(JUMPBAR_CHAPTERS[0].map);setScreen('menu');document.getElementById('play').focus();
+};
+document.getElementById('code-form').onsubmit=e=>{
+  e.preventDefault();cancelCodeReset();
+  const result=campaign.redeemCode(document.getElementById('code-input').value),status=document.getElementById('code-status'),reward=document.getElementById('code-reward');
+  reward.hidden=!result.ok;
+  if(result.status==='confirm-reset'){
+    resetCodePending=true;document.getElementById('code-reset-warning').hidden=false;status.textContent='Nothing has been reset. Please read the warning below.';document.getElementById('code-reset-cancel').focus();return;
+  }
+  status.textContent=result.ok?(result.status==='levels'?'All story and sandbox maps are now unlocked!':'Unlocked! Chef Arjun is ready to play.'):result.status==='already'?'You already redeemed this reward.':'Code not found. Check it and try again.';
+  if(result.ok){
+    const levels=result.status==='levels';reward.querySelector('h3').textContent=levels?'ALL LEVELS UNLOCKED':'CHEF ARJUN';reward.querySelector('p').textContent=levels?'Every story chapter + all sandbox playgrounds. Your scores stay yours.':'New character + Flying platter trick';document.getElementById('code-view').textContent=levels?'CHOOSE A MAP →':'VIEW CHARACTER →';
+    saveCampaign();if(result.character)selectCharacter(result.character);else {updateCampaignMenu();updateMapCarousel();}sound.ui('buy');document.getElementById('code-view').focus();
+  }else if(result.status==='already')saveCampaign();
+};
