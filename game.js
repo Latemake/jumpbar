@@ -2,9 +2,9 @@
 const canvas=document.getElementById('game');
 const ui=Object.fromEntries(['menu','hud','touch','pause','result','guide','boards','score','progress','menu-best','start-hint','result-label','result-title','result-score','result-copy'].map(id=>[id,document.getElementById(id)]));
 const game=new KaariPhysics(),keys=new Set(),touchKeys=new Set();
-let gameMode='story',lastStoryMap=0,lastSandboxMap=11;
-function courseList(){return gameMode==='sandbox'?KAARI_MAPS.map((m,map)=>({map,title:m.name,story:m.description,goal:0})):JUMPBAR_CHAPTERS;}
-function canPlayMap(map){return gameMode==='sandbox'?campaign.sandboxUnlocked:campaign.available(map);}
+let gameMode='story';
+function courseList(){return [...KAARI_MAPS.flatMap((m,map)=>m.sandboxOnly?[{map,title:m.name,story:m.description,goal:0}]:[]),...JUMPBAR_CHAPTERS];}
+function canPlayMap(map){return KAARI_MAPS[map].sandboxOnly?campaign.sandboxUnlocked:campaign.available(map);}
 const touchPointers=new Map();
 const touchMode=navigator.maxTouchPoints>0||matchMedia('(any-pointer: coarse)').matches;
 document.body.dataset.touch=String(touchMode);
@@ -21,8 +21,8 @@ function updateCampaignMenu(){
   document.getElementById('character-ability').textContent=c.ability+' · '+c.instruction;
   const buy=document.getElementById('buy-character');buy.hidden=owned;buy.disabled=campaign.data.coins<c.price;buy.textContent=buy.disabled?'◈ '+c.price+' · need '+(c.price-campaign.data.coins):'BUY · ◈ '+c.price;
   document.getElementById('chapter-title').textContent=chapter.title;
-  document.getElementById('chapter-goal').textContent=gameMode==='sandbox'?'FREE PLAY · NO SCORE GATE':unlocked?'TARGET '+chapter.goal+' PTS · '+('★'.repeat(campaign.stars(game.mapIndex))||'☆☆☆'):'LOCKED · finish the previous chapter';
-  document.getElementById('chapter-story').textContent=chapter.story;const modeButton=document.getElementById('mode-toggle');modeButton.disabled=!campaign.sandboxUnlocked;modeButton.textContent=gameMode==='sandbox'?'← STORY':campaign.sandboxUnlocked?'SANDBOX →':'SANDBOX 🔒';modeButton.setAttribute('aria-label',campaign.sandboxUnlocked?'Switch between story and sandbox':'Complete every story chapter to unlock sandbox');document.getElementById('mode-name').textContent=gameMode==='sandbox'?'SANDBOX':'STORY';
+  document.getElementById('chapter-goal').textContent=gameMode==='sandbox'?'FREE PLAY · NO FINISH LINE':unlocked?'TARGET '+chapter.goal+' PTS · '+('★'.repeat(campaign.stars(game.mapIndex))||'☆☆☆'):(gameMode==='sandbox'?'LOCKED · complete the story':'LOCKED · finish the previous chapter');
+  document.getElementById('chapter-story').textContent=chapter.story;document.getElementById('mode-name').textContent=gameMode==='sandbox'?'SANDBOX':'STORY';
   const play=document.getElementById('play');play.disabled=!owned||!unlocked;play.textContent=!unlocked?'LOCKED':!owned?'SELECT OWNED':gameMode==='sandbox'?'FREE PLAY ↗':campaign.cleared(game.mapIndex)?'PLAY AGAIN ↗':'START CHAPTER ↗';
 }
 document.getElementById('buy-character').onclick=()=>{if(campaign.buy(selectedCharacter)){saveCampaign();selectCharacter(selectedCharacter);}};
@@ -95,15 +95,15 @@ function showCombo(event){
   }
 }
 for(let i=0;i<12;i++)document.getElementById('combo-sparks').appendChild(document.createElement('i'));
-function sync(){ui.score.textContent=game.score;ui.progress.textContent=`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=game.sandbox?'FREE PLAY':`BEST ${best}`;document.getElementById('hud-goal').textContent=(game.sandbox?'SANDBOX':`/ ${campaign.chapter(game.mapIndex).goal} PTS`)+(game.objectives.length?' · '+(game.map.challenge==='stars'?'STARS ':game.map.challenge==='window'?'WINDOW ':'FIRE ')+game.objectives.filter(o=>o.done).length+'/'+game.objectives.length:'')+(game.map.gravity?' · '+game.map.gravity+'× GRAVITY':'');}
+function sync(){ui.score.textContent=game.score;ui.progress.textContent=game.sandbox?'∞':`${game.visited.size} / ${game.bars.length}`;ui['menu-best'].textContent=game.sandbox?'FREE PLAY':`BEST ${best}`;document.getElementById('hud-goal').textContent=(game.sandbox?'SANDBOX':`/ ${campaign.chapter(game.mapIndex).goal} PTS`)+(game.objectives.length?' · '+(game.map.challenge==='stars'?'STARS ':game.map.challenge==='window'?'WINDOW ':'FIRE ')+game.objectives.filter(o=>o.done).length+'/'+game.objectives.length:'')+(game.map.gravity?' · '+game.map.gravity+'× GRAVITY':'');}
 function updateMapCarousel(){
   const courses=courseList(),count=courses.length,current=courses.findIndex(c=>c.map===game.mapIndex);
   document.querySelectorAll('[data-map]').forEach(button=>{
     const offset=Number(button.dataset.chapter)-current;
-    const map=Number(button.dataset.map),locked=!canPlayMap(map);button.classList.toggle('locked',locked);button.querySelector('.map-info small').textContent=locked?'LOCKED':gameMode==='sandbox'?(KAARI_MAPS[map].sandboxOnly?'BONUS MAP · FREE PLAY':'FREE PLAY'):campaign.cleared(map)?'★'.repeat(campaign.stars(map))+' · COMPLETE':'TARGET '+campaign.chapter(map).goal+' PTS';
+    const map=Number(button.dataset.map),locked=!canPlayMap(map);button.classList.toggle('locked',locked);button.querySelector('.map-info small').textContent=locked?'LOCKED':KAARI_MAPS[map].sandboxOnly?'FREE PLAY':campaign.cleared(map)?'★'.repeat(campaign.stars(map))+' · COMPLETE':'TARGET '+campaign.chapter(map).goal+' PTS';
     button.dataset.offset=offset;button.setAttribute('aria-pressed',String(offset===0));button.tabIndex=Math.abs(offset)<=2?0:-1;button.setAttribute('aria-hidden',String(Math.abs(offset)>2));
   });
-  document.getElementById('map-counter').textContent=`${String(current+1).padStart(2,'0')} / ${String(count).padStart(2,'0')}`;
+  const section=courses.filter(c=>!!KAARI_MAPS[c.map].sandboxOnly===game.sandbox);document.getElementById('map-counter').textContent=`${String(section.findIndex(c=>c.map===game.mapIndex)+1).padStart(2,'0')} / ${String(section.length).padStart(2,'0')}`;
   document.getElementById('map-selected-name').textContent=game.map.name;document.getElementById('map-prev').disabled=current===0;document.getElementById('map-next').disabled=current===count-1;updateCampaignMenu();
 }
 function cycleMap(direction){const courses=courseList(),current=courses.findIndex(c=>c.map===game.mapIndex);reset(courses[clamp(current+direction,0,courses.length-1)].map);}
@@ -112,12 +112,11 @@ function buildCourseCards(){mapTrack.replaceChildren();for(const [chapterIndex,c
   const index=chapter.map,map=KAARI_MAPS[index];
   const button=document.createElement('button');button.className=`map-card ${map.id}`;button.dataset.map=index;button.dataset.chapter=chapterIndex;button.type='button';
   button.setAttribute('aria-label',`${map.name}, ${map.description}`);
-  button.innerHTML=`<span class="map-art"><img src="assets/maps/${map.id}.webp" alt="${map.name} course preview" loading="lazy"><b>${String(chapterIndex+1).padStart(2,'0')}</b></span><span class="map-info"><strong>${map.name}</strong><small>${map.description.split(' · ').slice(0,2).join(' · ')}</small></span>`;
+  button.innerHTML=`<span class="map-art"><img src="assets/maps/${map.id}.webp" alt="${map.name} course preview" loading="lazy"><b>${map.sandboxOnly?'∞':String(JUMPBAR_CHAPTERS.findIndex(c=>c.map===index)+1).padStart(2,'0')}</b></span><span class="map-info"><strong>${map.name}</strong><small>${map.description.split(' · ').slice(0,2).join(' · ')}</small></span>`;
   button.onclick=()=>{if(performance.now()>mapDrag.ignoreUntil)reset(index);};mapTrack.appendChild(button);
 }
 }
 buildCourseCards();
-document.getElementById('mode-toggle').onclick=()=>{if(!campaign.sandboxUnlocked)return;if(gameMode==='story'){lastStoryMap=game.mapIndex;gameMode='sandbox';}else{lastSandboxMap=game.mapIndex;gameMode='story';}buildCourseCards();reset(gameMode==='sandbox'?lastSandboxMap:lastStoryMap);};
 const mapDrag={id:null,startX:0,startY:0,dx:0,dragging:false,ignoreUntil:0};
 mapTrack.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0||mapDrag.id!==null)return;mapDrag.id=e.pointerId;mapDrag.startX=e.clientX;mapDrag.startY=e.clientY;mapDrag.dx=0;mapDrag.dragging=false;});
 mapTrack.addEventListener('pointermove',e=>{if(e.pointerId!==mapDrag.id)return;mapDrag.dx=e.clientX-mapDrag.startX;if(!mapDrag.dragging&&Math.abs(mapDrag.dx)>8&&Math.abs(mapDrag.dx)>Math.abs(e.clientY-mapDrag.startY)){mapDrag.dragging=true;mapTrack.setPointerCapture(e.pointerId);mapTrack.classList.add('dragging');}if(mapDrag.dragging)mapTrack.style.setProperty('--drag',`${clamp(mapDrag.dx,-100,100)}px`);});
@@ -126,6 +125,7 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])mapTrack.ad
 for(const [id,direction] of [['map-prev',-1],['map-next',1]]){const button=document.getElementById(id);button.addEventListener('pointerup',e=>{if(e.button!==0)return;e.preventDefault();cycleMap(direction);});button.onclick=e=>{if(e.detail===0)cycleMap(direction);};}
 mapTrack.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();e.stopPropagation();cycleMap(e.code==='ArrowRight'?1:-1);}});
 function reset(mapIndex=game.mapIndex){
+  gameMode=KAARI_MAPS[mapIndex].sandboxOnly?'sandbox':'story';
   if(typeof leaderboardService!=='undefined')leaderboardService.reset();sound.stop();clearInput();clearCombo();game.reset(mapIndex,{sandbox:gameMode==='sandbox'});game.characterId=campaign.data.equipped;game.deathDiveUnlocked=campaign.trickUnlocked('deathdive');document.querySelector('[data-key=KeyB]').hidden=game.characterId!=='bruno';document.querySelector('[data-key=KeyF]').hidden=!game.deathDiveUnlocked;readBest();trail=[];particles=[];camera=0;cameraSpan=baseSpan();cameraY=cameraSpan/2-floorMargin(cameraSpan);ui['start-hint'].hidden=false;ui['start-hint'].innerHTML=initialStartHint;
   if(touchMode)followMobilePlayer(0,true);
   updateMapCarousel();sync();
@@ -145,8 +145,10 @@ function step(dt){
   document.querySelector('.special-control').classList.toggle('spent',game.specialAwarded);
   for(const event of game.events){
     sound.event(event,game);
+    if(event.type==='respawn'){clearInput();trail=[];particles=[];ui['start-hint'].innerHTML=initialStartHint;ui['start-hint'].hidden=false;if(touchMode)followMobilePlayer(0,true);sync();continue;}
     if(event.type==='chain'||event.type==='chainBreak'){showCombo(event);
     }else if(event.type==='finish'){
+      if(game.sandbox){clearInput();continue;}
       if(typeof leaderboardService!=='undefined')leaderboardService.finish();
       const reward=campaign.claim(game);saveCampaign();readBest();
       ui['result-label'].textContent=event.splash?(!event.success?'VISIT BOTH BARS':event.splash.kind==='bomb'?'CANNONBALL +200':event.splash.kind==='deathdive'?'DEATH DIVE +200':event.splash.clean?'CLEAN DIVE +200':'SPLASH!'):event.success?'CLEAN LANDING':event.crash.quip;ui['result-title'].textContent=event.splash?(event.success?'SPLASH!':'MISSED A BAR!'):event.success?'STUCK IT!':event.crash.title;if(!event.success&&game.visited.size===game.bars.length&&!game.objectives.every(o=>o.done)){ui['result-label'].textContent='SPECIAL OBJECTIVE MISSED';ui['result-title'].textContent=game.map.challenge==='stars'?'COLLECT ALL STARS!':game.map.challenge==='window'?'AIM FOR THE WINDOW!':'THROUGH THE FIRE!';}ui['result-score'].textContent=game.score;ui['result-copy'].textContent=`${game.visited.size} / ${game.bars.length} bars / best combo ${game.maxChain} · best ${best}`;
@@ -160,14 +162,13 @@ function step(dt){
         if(reward.newChapter&&campaign.trickUnlocked('deathdive')&&!campaign.data.tutorialsSeen.includes('deathdive'))document.getElementById('result-unlock').textContent+=' NEW TRICK: Death dive!';
         updateCampaignMenu();
       }
-      if(game.sandbox){document.getElementById('result-reward').textContent='SANDBOX';document.getElementById('result-unlock').textContent='Free play · experiment with your next trick line.';document.getElementById('next-chapter').hidden=true;}
       if(event.splash){particles.push({x:event.splash.x,y:K_FLOOR-60,label:!event.success?'SPLASH!':'+'+event.splash.points+' SPLASH!',life:1.6});clearInput();ui.touch.hidden=true;}
       if(event.crash){particles.push({x:event.crash.x,y:K_FLOOR-95,label:event.crash.sound,life:1.8});clearInput();ui.touch.hidden=true;}
     }else{const label=event.type==='special'?`+${event.points} ${event.label}`:event.type==='bounce'||event.type==='ground'||event.type==='collision'?event.label:event.type==='flip'?`+250 ${event.label}`:event.type==='twist'?`+200 ${event.label}`:event.type==='combo'?`COMBO +150 · ${event.label}`:'+100';if(event.type==='combo')particles=[];particles.push({x:event.x,y:event.y-40,label,life:event.type==='combo'?2:1.5});if(event.type==='catch')trail=[];}
     sync();
   }
   game.events=[];
-  if(game.ended&&game.elapsedAfterEnd>(game.splash?game.splash.duration:game.crash?game.crash.duration:1.1))setScreen('result');
+  if(!game.sandbox&&game.ended&&game.elapsedAfterEnd>(game.splash?game.splash.duration:game.crash?game.crash.duration:1.1))setScreen('result');
   const p=game.player;
   if(p.bar<0&&!game.ended){trail.push({x:p.x,y:p.y});if(trail.length>30)trail.shift();}
   if(touchMode){followMobilePlayer(dt);return;}

@@ -169,6 +169,11 @@ Even chapters have required fire-ring or star objectives; Sauna Escape also requ
 
 ## Completion reward and physical contacts
 
-Clear all eleven story goals to unlock Sandbox in the menu. Free play includes all story environments plus Endless Recess (12 bars), Cloud Drop (a 1,200-unit cliff) and Orbit Playground (0.35× gravity). Sandbox removes compulsory objectives and bar visitation requirements, grants no campaign currency and never submits competitive leaderboard results.
+Clear all eleven story goals to unlock Sandbox in the menu. The three free-play parks are Endless Recess (spring beds, boxes and moving bars), Cloud Drop (a 1,200-unit cliff) and Orbit Playground (0.35× gravity). Sandbox removes compulsory objectives and bar visitation requirements, grants no campaign currency and never submits competitive leaderboard results.
 
 Airborne bodies and limbs collide with the crossbars using swept contact checks; a hit rebounds and breaks the combo. Gripping remains possible. Landing alignment and spin braking apply only over the landing mat. Outside it, a recovery needs a nearly upright body, low spin, modest sideways speed and a survivable downward speed. Ground balance outside the mat no longer automatically rights a tilted body.
+
+
+## Free playgrounds
+
+The three sandbox parks are at the left of the story carousel and remain completion rewards. They have no landing mat, route requirement or result screen. Falls and water entries automatically return to the last caught bar while keeping the session score. The parks contain raised vault boxes, forward-launching spring beds and rail-mounted moving bars; moving bars transfer their velocity on release. A spring bed also helps recover between the middle bars in Flip Academy. On sandbox ground, twist arrows move sideways and a quick tuck-release jumps.

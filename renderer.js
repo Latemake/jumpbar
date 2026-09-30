@@ -390,7 +390,7 @@ class KaariRenderer {
       for(let i=0;i<12;i++)this.ball(i*240-650,-45,-680-(i%3)*100,150+(i%4)*20,hill,this.world,1.9,1,1.5);
     }
     const stone=this.material('#c3c8b8'),dark=this.material('#50665f');
-    for(let i=0;i<(this.mapIndex<2?Math.ceil(length/240)+5:0);i++){
+    for(let i=0;i<((game.map.theme||game.map.id)==='garden'?Math.ceil(length/240)+5:0);i++){
       const x=i*250-350,z=-190-(i%3)*65;this.makeTree(x,z,135+(i%3)*25,coast?'coast':sunset?'sunset':'garden');
       if(i%2===0){this.block(x+75,8,-120,63,6,23,stone);for(const dx of [-22,22])this.block(x+75+dx,0,-120,4,17,20,dark);}
     }
@@ -399,10 +399,20 @@ class KaariRenderer {
     this.buildLandmarks(game,length);
     }
     const steel=this.material('#d6e4df',.27,.7),frame=this.material(coast?'#40747e':sunset?'#715f56':'#476f60',.4,.35),rubber=this.material('#324d45'),bolt=this.material('#f4e7c4',.3,.65);
-    this.barIndicators=[];
+    this.trampolineMeshes=game.trampolines.map(t=>{
+      const x=t.x+t.w/2,y=K_FLOOR-t.top,metal=this.material('#516b83',.35,.7),pad=this.material('#eb5d91'),net=this.material('#263a51');
+      for(const dx of [-t.w/2+8,t.w/2-8])for(const z of [-53,53])this.rod([x+dx,y-22,z],[x+dx,y,z],3,metal);
+      for(const z of [-56,56])this.rod([x-t.w/2,y,z],[x+t.w/2,y,z],6,pad);
+      for(const dx of [-t.w/2,t.w/2])this.rod([x+dx,y,-56],[x+dx,y,56],6,pad);
+      for(let n=0;n<Math.floor(t.w/14);n++)for(const z of [-50,50])this.rod([t.x+8+n*14,y,z],[t.x+8+n*14,y,z*.77],1,metal);
+      const bed=this.block(x,y-2,0,t.w-22,3,82,net);const arrow=this.label(t.forward>0?'BOUNCE →':'← BOUNCE','#fff1b8',17);arrow.position.set(x,y+32,0);this.world.add(arrow);return {bed,y};
+    });
+    for(const b of game.boxes){const wood=this.material('#bd874e'),trim=this.material('#ffdc89');this.block(b.x+b.w/2,K_FLOOR-b.top-b.height/2,0,b.w,b.height,115,wood);this.block(b.x+b.w/2,K_FLOOR-b.top,0,b.w+4,5,119,trim);for(let h=20;h<b.height;h+=25)this.block(b.x+b.w/2,K_FLOOR-b.top-b.height+h,59,b.w-8,3,2,trim);}
+    this.barGroups=[];this.barIndicators=[];
     game.bars.forEach((b,i)=>{
+      const mark=this.world.children.length,moving=(game.map.movingBars||[]).find(m=>m.index===i);
       const y=K_FLOOR-b.y;
-      for(const z of [-38,38]){
+      if(!moving)for(const z of [-38,38]){
         const base=game.water?terrainHeight(game.map,b.x):0;
         this.rod([b.x,base+2,z],[b.x,y+6,z],4.5,frame);
         this.block(b.x,base+3,z,34,6,22,rubber);
@@ -414,6 +424,8 @@ class KaariRenderer {
       const gripMat=this.material('#d8b98a',.88);this.rod([b.x,y,-20],[b.x,y,20],3.9,gripMat);
       const indicator=this.ball(b.x,y+8,39,3.2,this.material('#a8b6ac'));this.barIndicators.push(indicator);
       const label=this.label(String(i+1).padStart(2,'0'),'#426158',12);label.position.set(b.x,y+25,0);this.world.add(label);
+      const group=new THREE.Group();for(const child of this.world.children.slice(mark))group.add(child);this.world.add(group);const entry={group,x:b.x,y:b.y,links:[]};this.barGroups.push(entry);
+      if(moving){for(const z of [-38,38])entry.links.push({mesh:this.rod([b.x,K_FLOOR-b.baseY+125,-65],[b.x,y,z],1.6,steel),z});this.rod([b.baseX-moving.dx-40,K_FLOOR-b.baseY+125,-65],[b.baseX+moving.dx+40,K_FLOOR-b.baseY+125,-65],5,frame);const tag=this.label('↔','#fff3ab',23);tag.position.set(b.x,y+60,0);group.add(tag);}
     });
     this.objectiveMeshes=game.objectives.map((o,i)=>{
       const group=new THREE.Group();this.world.add(group);group.userData.flames=[];
@@ -436,7 +448,7 @@ class KaariRenderer {
       }
       group.position.set(o.x,K_FLOOR-o.y,0);return group;
     });
-    if(game.water)return;
+    if(game.water||game.sandbox)return;
     const lane=this.material('#eaf0d4');
     const mat=game.mat,foam=this.material('#69a28f',.9),top=this.material('#95c5a4',.95);
     this.block(mat.x+mat.w/2,-9,0,mat.w,17,117,foam);this.block(mat.x+mat.w/2,0,0,mat.w-6,2,111,top);
@@ -448,6 +460,8 @@ class KaariRenderer {
     const inMenu=document.body.dataset.screen==='menu',time=performance.now()/1000;
     if(this.mapIndex!==game.mapIndex||this.sandbox!==game.sandbox)this.buildMap(game);
     this.drawWater(game,time);
+    this.barGroups.forEach((m,i)=>{const b=game.bars[i];m.group.position.set(b.x-m.x,m.y-b.y,0);for(const link of m.links)this.placeRod(link.mesh,[b.x,K_FLOOR-b.baseY+125,-65],[b.x,K_FLOOR-b.y,link.z],1.6);});
+    this.trampolineMeshes.forEach((m,i)=>{m.bed.position.y=m.y-2-Math.sin(game.trampolines[i].pulse*Math.PI)*10;});
     (this.objectiveMeshes||[]).forEach((group,i)=>{const o=game.objectives[i];group.position.set(o.x+(o.motion||0)*Math.sin(game.courseTime*1.4),K_FLOOR-o.y,0);group.visible=!o.done||o.axis==='x';for(const [n,f] of group.userData.flames.entries()){f.scale.y=23+(n%4)*4+Math.sin(time*11+n*2.1)*9;f.position.y=0;f.rotation.z=Math.sin(time*8+n)*.22;}});
     this.person.visible=true;
     if(game.splash&&!inMenu&&!this.mobile)focusY+=(Math.min(focusY,-30)-focusY)*Math.min(1,game.elapsedAfterEnd*3);
@@ -495,7 +509,7 @@ class KaariRenderer {
     }
     this.renderer.render(this.scene,this.camera);
     this.targetGuide.hidden=true;
-    if(this.mobile&&document.body.dataset.screen==='play'&&!game.ended){
+    if(this.mobile&&document.body.dataset.screen==='play'&&!game.ended&&!game.sandbox){
       const index=game.bars.findIndex((_,i)=>!game.visited.has(i));
       const objective=game.objectives.find(o=>!o.done);const target=index<0?(objective?{x:objective.x+(objective.motion||0)*Math.sin(game.courseTime*1.4),y:objective.y}:{x:game.mat.x+Math.min(500,game.mat.w/2),y:K_FLOOR-10}):game.bars[index];
       const v=new THREE.Vector3(target.x,K_FLOOR-target.y,0).project(this.camera);

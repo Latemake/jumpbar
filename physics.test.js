@@ -106,9 +106,10 @@ test('airborne tuck increases spin without changing the ballistic trajectory',()
   assert.ok(tucked.player.omega>straight.player.omega*2);assert.equal(straight.player.x,tucked.player.x);assert.equal(straight.player.y,tucked.player.y);
   assert.ok(Math.abs(tucked.player.omega*tucked.inertia(tucked.player.tuck)-3)<1e-10);
 });
-test('all map gaps and final landings are reachable from pumped launch states',()=>{
+test('all story map gaps and final landings are reachable from pumped launch states',()=>{
   const samples=launchSamples();
   for(let map=0;map<KAARI_MAPS.length;map++){
+    if(KAARI_MAPS[map].sandboxOnly)continue;
     const count=KAARI_MAPS[map].points.length;
     for(let bar=0;bar<count-1;bar++){
       let reachable=false;
@@ -183,7 +184,7 @@ test('air tuck folds hands to shins with bent elbows while bar tuck retains grip
 test('eight bar courses and six water courses with forgiving entries and clean-dive bonuses',()=>{
   assert.equal(KAARI_MAPS.filter(m=>m.mode!=='dive').length,8);
   assert.equal(KAARI_MAPS.filter(m=>m.mode==='dive').length,6);
-  for(const [index,map] of KAARI_MAPS.entries())if(map.mode==='dive'){
+  for(const [index,map] of KAARI_MAPS.entries())if(map.mode==='dive'&&!map.sandboxOnly){
     for(const angle of [0,Math.PI,Math.PI/2]){
       const g=new KaariPhysics(index);g.active=true;g.visited=new Set([0,1]);g.objectives.forEach(o=>o.done=true);
       Object.assign(g.player,{bar:-1,x:g.mat.x+180,y:K_FLOOR-70,angle,tuck:0,vx:0,vy:180,momentum:0});g.ragdoll.reset(g.player);
@@ -328,4 +329,14 @@ test('landing assistance acts only inside the mat and an unassisted tilted landi
 });
 test('sandbox removes compulsory objectives and accepts a finish without visiting every bar',()=>{
  const g=new KaariPhysics(4);g.reset(4,{sandbox:true});assert.equal(g.objectives.length,0);g.active=true;Object.assign(g.player,{bar:-1,x:g.mat.x+200,y:K_FLOOR-60,vx:0,vy:180,angle:0});g.ragdoll.reset(g.player);for(let i=0;i<120&&!g.ended;i++)g.step(dt);assert.equal(g.success,true);assert.equal(g.visited.size,1);g.reset(4);assert.equal(g.sandbox,false);assert.equal(g.objectives.length,2);
+});
+
+test('trampolines launch forward on descending contact and do not retrigger on ascent',()=>{
+ for(const map of [6,11,13]){const g=new KaariPhysics(map),t=g.trampolines[0];g.active=true;Object.assign(g.player,{bar:-1,x:t.x+t.w/2,y:t.top-60,vy:300,vx:0,angle:0,momentum:0});g.ragdoll.reset(g.player);for(let i=0;i<20&&g.player.vy>=0;i++)g.step(dt);assert.equal(g.player.vy,-t.power);assert.equal(g.player.vx,t.forward);assert.equal(g.ended,false);const count=g.events.filter(e=>e.label==='BOING!').length;g.step(dt);assert.equal(g.events.filter(e=>e.label==='BOING!').length,count);assert.ok(t.pulse>0);}
+});
+test('moving bars carry a held player and contribute velocity on release',()=>{
+ const g=new KaariPhysics(11);g.active=true;g.player.bar=2;const b=g.bars[2],x=b.x;g.step(dt,{grip:true});assert.notEqual(b.x,x);assert.ok(Math.abs(Math.hypot(g.player.x-b.x,g.player.y-b.y)-g.player.radius)<.001);const p={...g.player},vx=b.vx,vy=b.vy;g.release();assert.ok(Math.abs(g.player.vx-(Math.cos(p.angle)*p.radius*p.omega+vx))<.001);assert.ok(Math.abs(g.player.vy-(-Math.sin(p.angle)*p.radius*p.omega+vy))<.001);
+});
+test('sandbox has no finish mat, boxes support jumps, and falls return to practice with score intact',()=>{
+ const g=new KaariPhysics(11);assert.equal(g.sandbox,true);g.active=true;g.score=123;g.checkpoint=2;const box=g.boxes[0];assert.equal(g.groundY(box.x+20),box.top);Object.assign(g.player,{bar:-1,x:box.x+box.w/2,y:box.top-56,angle:0,omega:0,vy:0,vx:0});g.ragdoll.reset(g.player);assert.equal(g.onLandingMat(),false);g.startLanding();for(let i=0;i<12;i++)g.step(dt,{tuck:true});g.step(dt,{});assert.ok(g.player.vy<0);assert.equal(g.ended,false);g.finish(false);for(let i=0;i<220;i++)g.step(dt);assert.equal(g.ended,false);assert.equal(g.score,123);assert.equal(g.player.bar,2);assert.ok(g.events.some(e=>e.type==='respawn'));
 });
